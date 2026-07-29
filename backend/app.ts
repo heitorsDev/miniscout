@@ -110,7 +110,6 @@ export function createApp(options: AppOptions = {}): Express {
   if (options.mongoDatabase) {
     const competitionRepository = createMongoCompetitionRepository(options.mongoDatabase);
     const competitionService = createCompetitionService(competitionRepository, profileRepository);
-    app.locals.competitionService = competitionService;
     const competitionController = createCompetitionController(competitionService);
     const competitionLookupController = createCompetitionLookupController({
       competitionService
