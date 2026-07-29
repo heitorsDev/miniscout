@@ -27,13 +27,11 @@ import {
   upsertDraft
 } from "./scouter";
 import {
-  createScoutRecord,
-  deleteScoutRecord,
-  findExistingScouts,
-  getGroupForCompetitionAdmin,
-  listGroupsForCompetitionAdmin,
-  scoutRecordInputSchema
-} from "./records";
+  createMongoRecordRepository
+} from "./features/records/record.repository";
+import { createRecordService } from "./features/records/record.service";
+import { createRecordController } from "./features/records/record.controller";
+import { createRecordRoutes } from "./features/records/record.routes";
 import { createGroupsCsv } from "./group-export";
 import {
   listOfficialScoresForCompetition,
@@ -148,71 +146,17 @@ export function createApp(options: AppOptions = {}): Express {
     app.locals.competitionService = competitionService;
     const competitionController = createCompetitionController(competitionService);
     app.use("/api", createCompetitionRoutes(competitionController, requireMongo));
+
+    const recordRepository = createMongoRecordRepository(options.mongoDatabase);
+    const recordService = createRecordService(recordRepository);
+    const recordController = createRecordController({
+      recordService,
+      competitionService,
+      profileStoragePath,
+      cookieName: SCOUTER_COOKIE
+    });
+    app.use("/api", createRecordRoutes(recordController, requireMongo));
   }
-
-  app.get("/api/admin/competitions/:id/records", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const competitionId = String(request.params.id);
-    try {
-      const competition = await competitionService.findById(competitionId);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-       const contents = await readFile(profilePath(profileStoragePath, competition.scoring_profile_name), "utf8");
-       const profile = validateScoringProfile(JSON.parse(contents));
-       if (!profile.success) {
-         response.status(500).json(errorResponse("Competition profile invalid"));
-         return;
-       }
-       const groups = await listGroupsForCompetitionAdmin(database, competition._id, profile.data);
-       response.status(200).json({ groups });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/admin/competitions/:id/groups/:match/:team", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    try {
-      const competition = await competitionService.findById(String(request.params.id));
-      if (!competition) return void response.status(404).json(errorResponse("Competition not found"));
-      const contents = await readFile(profilePath(profileStoragePath, competition.scoring_profile_name), "utf8");
-      const profile = validateScoringProfile(JSON.parse(contents));
-      if (!profile.success) return void response.status(500).json(errorResponse("Competition profile invalid"));
-      const group = await getGroupForCompetitionAdmin(database, competition._id, String(request.params.match), String(request.params.team), profile.data);
-      if (!group) return void response.status(404).json(errorResponse("Group not found"));
-      response.status(200).json({ group });
-    } catch (error) { next(error); }
-  });
-
-  app.get("/api/competitions/:token/existing-scouts", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    try {
-      const competition = await competitionService.findByQrToken(String(request.params.token));
-      if (!competition) return void response.status(404).json(errorResponse("Competition not found"));
-      const result = await findExistingScouts(database, competition._id, String(request.query.match_number ?? ""), String(request.query.team_number ?? ""), request.cookies?.[SCOUTER_COOKIE]);
-      response.status(200).json(result);
-    } catch (error) { next(error); }
-  });
-
-  app.delete("/api/admin/records/:id", requireMongo, async (request, response, next) => {
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const recordId = String(request.params.id);
-    try {
-      const deleted = await deleteScoutRecord(database, recordId);
-      if (!deleted) {
-        response.status(404).json(errorResponse("ScoutRecord not found"));
-        return;
-      }
-      response.status(204).end();
-    } catch (error) {
-      next(error);
-    }
-  });
 
   app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
     const competitionService = request.app.locals.competitionService;
@@ -456,46 +400,6 @@ export function createApp(options: AppOptions = {}): Express {
           values: draft.values,
           updated_at: draft.updated_at.toISOString()
         }
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.post("/api/competitions/:token/records", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const qrToken = String(request.params.token);
-    const cookieId = request.cookies?.[SCOUTER_COOKIE];
-    if (!cookieId) {
-      response.status(401).json(errorResponse("Scouter cookie missing"));
-      return;
-    }
-    const parsed = scoutRecordInputSchema.safeParse(request.body ?? {});
-    if (!parsed.success) {
-      response.status(400).json(fieldErrors(parsed.error.issues.map((issue) => ({
-        path: `${issue.path.join(".")}`,
-        message: issue.message,
-        code: issue.code
-      }))));
-      return;
-    }
-    try {
-      const competition = await competitionService.findByQrToken(qrToken);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-      const scouter = await findScouterByCookie(database, cookieId);
-      const record = await createScoutRecord(
-        database,
-        competition._id,
-        cookieId,
-        parsed.data
-      );
-      response.status(201).json({
-        record_id: record.record_id,
-        scouter_name: scouter?.display_name ?? parsed.data.scouter_name
       });
     } catch (error) {
       next(error);
