@@ -19,12 +19,10 @@ export class ProfileNotFoundError extends Error {
   }
 }
 
-export type ProfileLookup = {
+export type ProfileRepository = {
   exists(name: string): Promise<boolean>;
   load(name: string): Promise<unknown>;
-};
-
-export type ProfileRepository = ProfileLookup & {
+  loadRaw(name: string): Promise<string>;
   save(profile: ScoringProfile): Promise<void>;
 };
 
@@ -51,6 +49,9 @@ export function createFileProfileRepository(storagePath: string): ProfileReposit
         }
         throw error;
       }
+    },
+    async loadRaw(name) {
+      return readFile(profilePath(storagePath, name), "utf8");
     },
     async save(profile) {
       await mkdir(storagePath, { recursive: true });

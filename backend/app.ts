@@ -4,9 +4,11 @@ import { randomUUID } from "node:crypto";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import cookieParser from "cookie-parser";
 import { z } from "zod";
-import { profileNameSchema, validateScoringProfile } from "./features/profiles/profile.schema";
-import type { ScoringProfile } from "./features/profiles/profile.types";
+import { validateScoringProfile } from "./features/profiles/profile.schema";
 import { profilePath } from "./features/profiles/profile.repository";
+import { createFileProfileRepository } from "./features/profiles/profile.repository";
+import { createProfileController } from "./features/profiles/profile.controller";
+import { createProfileRoutes } from "./features/profiles/profile.routes";
 import type { MongoDatabase } from "./db";
 import {
   findCompetitionById,
@@ -138,43 +140,9 @@ export function createApp(options: AppOptions = {}): Express {
     response.status(200).json({ status: "ok" });
   });
 
-  app.post("/api/admin/profiles", async (request, response, next) => {
-    const result = validateScoringProfile(request.body);
-    if (!result.success) {
-      response.status(400).json(validationResponse(result.errors));
-      return;
-    }
-
-    try {
-      await saveProfile(profileStoragePath, result.data);
-      response.status(200).json(result.data);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/admin/profiles/:name", async (request, response, next) => {
-    const nameResult = profileNameSchema.safeParse(request.params.name);
-    if (!nameResult.success) {
-      response.status(400).json(validationResponse(nameResult.error.issues.map((issue) => ({
-        path: "name",
-        message: issue.message,
-        code: issue.code
-      }))));
-      return;
-    }
-
-    try {
-      const contents = await readFile(profilePath(profileStoragePath, nameResult.data), "utf8");
-      response.status(200).type("application/json").send(contents);
-    } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        response.status(404).json({ error: "Profile not found" });
-        return;
-      }
-      next(error);
-    }
-  });
+  const profileRepository = createFileProfileRepository(profileStoragePath);
+  const profileController = createProfileController(profileRepository);
+  app.use("/api", createProfileRoutes(profileController));
 
   app.post("/api/admin/competitions", requireMongo, async (request, response, next) => {
     const database = request.app.locals.mongoDatabase as MongoDatabase;
