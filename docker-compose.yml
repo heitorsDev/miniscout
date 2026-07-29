@@ -16,9 +16,9 @@ services:
     environment:
       MONGO_URL: mongodb://mongo:27017/miniscout
       PORT: 3000
-      PROFILE_STORAGE_PATH: /data/profiles
+      PROFILE_STORAGE_PATH: ${PROFILE_STORAGE_PATH:-/data/profiles}
     volumes:
-      - profile_data:/data/profiles
+      - profile_data:${PROFILE_STORAGE_PATH:-/data/profiles}
     depends_on:
       mongo:
         condition: service_healthy
