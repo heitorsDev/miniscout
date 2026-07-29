@@ -1,0 +1,18 @@
+FROM node:20-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY backend ./backend
+COPY tsconfig.json ./
+RUN npm run build:backend
+
+FROM node:20-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist/backend ./dist/backend
+RUN mkdir -p /data/profiles && chown -R node:node /data
+USER node
+EXPOSE 3000
+CMD ["node", "dist/backend/server.js"]

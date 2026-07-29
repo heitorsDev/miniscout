@@ -1,0 +1,43 @@
+services:
+  mongo:
+    image: mongo:7.0
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      MONGO_URL: mongodb://mongo:27017/miniscout
+      PORT: 3000
+      PROFILE_STORAGE_PATH: /data/profiles
+    volumes:
+      - profile_data:/data/profiles
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+
+  reverse-proxy:
+    image: caddy:2.8-alpine
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "${ADMIN_BIND_ADDRESS:-127.0.0.1}:${ADMIN_PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+volumes:
+  mongo_data:
+  profile_data:

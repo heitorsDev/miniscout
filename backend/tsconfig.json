@@ -5,5 +5,5 @@
     "rootDir": "..",
     "noEmit": false
   },
-  "include": ["./**/*.ts"]
+  "include": ["./app.ts", "./profile-schema.ts", "./server.ts"]
 }

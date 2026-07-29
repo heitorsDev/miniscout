@@ -10,6 +10,7 @@
     "dev:frontend": "vite",
     "e2e": "playwright test",
     "lint": "eslint backend frontend e2e vite.config.ts --ext .ts,.tsx",
+    "preview": "vite preview",
     "start": "node dist/backend/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
