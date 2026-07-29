@@ -15,6 +15,7 @@ import {
 } from "./features/competitions/competition.repository";
 import { createCompetitionService } from "./features/competitions/competition.service";
 import { createCompetitionController } from "./features/competitions/competition.controller";
+import { createCompetitionLookupController } from "./features/competitions/competition.lookup.controller";
 import { createCompetitionRoutes } from "./features/competitions/competition.routes";
 import {
   SCOUTER_COOKIE,
@@ -35,6 +36,8 @@ import { createMongoOfficialScoreRepository } from "./features/official-scores/o
 import { createOfficialScoreService } from "./features/official-scores/official-score.service";
 import { createOfficialScoreController } from "./features/official-scores/official-score.controller";
 import { createOfficialScoreRoutes } from "./features/official-scores/official-score.routes";
+import { createTeamsController } from "./features/teams/team.controller";
+import { createTeamsRoutes } from "./features/teams/team.routes";
 import { createMongoRecordExportDataLoader } from "./mongo-record-export";
 import {
   createRecordsCsv,
@@ -142,7 +145,11 @@ export function createApp(options: AppOptions = {}): Express {
     const competitionService = createCompetitionService(competitionRepository, profileRepository);
     app.locals.competitionService = competitionService;
     const competitionController = createCompetitionController(competitionService);
-    app.use("/api", createCompetitionRoutes(competitionController, requireMongo));
+    const competitionLookupController = createCompetitionLookupController({
+      competitionService,
+      profileStoragePath
+    });
+    app.use("/api", createCompetitionRoutes({ controller: competitionController, lookupController: competitionLookupController }, requireMongo));
 
     const recordRepository = createMongoRecordRepository(options.mongoDatabase);
     const recordService = createRecordService(recordRepository);
@@ -166,6 +173,13 @@ export function createApp(options: AppOptions = {}): Express {
       competitionService
     });
     app.use("/api", createOfficialScoreRoutes(officialScoreController, requireMongo));
+
+    const teamsController = createTeamsController({
+      competitionService,
+      database: options.mongoDatabase,
+      profileStoragePath
+    });
+    app.use("/api", createTeamsRoutes(teamsController, requireMongo));
   }
 
   app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
@@ -243,43 +257,6 @@ export function createApp(options: AppOptions = {}): Express {
       );
 
       response.status(200).json({ teams: rollups });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/competitions/:token", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const qrToken = String(request.params.token);
-    try {
-      const competition = await competitionService.findByQrToken(qrToken);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-
-      let profile: unknown;
-      try {
-        const contents = await readFile(profilePath(profileStoragePath, competition.scoring_profile_name), "utf8");
-        profile = JSON.parse(contents);
-      } catch (error) {
-        if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-          response.status(500).json(errorResponse("Competition profile missing on disk"));
-          return;
-        }
-        next(error);
-        return;
-      }
-
-      response.status(200).json({
-        competition: {
-          _id: competition._id,
-          name: competition.name,
-          scoring_profile_name: competition.scoring_profile_name,
-          qr_token: competition.qr_token
-        },
-        profile
-      });
     } catch (error) {
       next(error);
     }
