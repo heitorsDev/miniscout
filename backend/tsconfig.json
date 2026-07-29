@@ -7,6 +7,8 @@
   },
   "include": [
     "./app.ts",
+    "./match-broadcast-stream.ts",
+    "./match-broadcaster.ts",
     "./mongo-record-export.ts",
     "./profile-schema.ts",
     "./record-export.ts",
