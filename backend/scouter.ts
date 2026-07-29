@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { newScouterId, type DraftDocument, type MongoDatabase, type ScouterDocument } from "./db";
+import { newScouterId, type DraftDocument, type MongoDatabase, type ScouterDocument } from "./shared/db";
 
 export const SCOUTER_COOKIE = "scouter_cookie_id";
 export const SCOUTER_COOKIE_TTL_SECONDS = 60 * 60 * 24 * 7;

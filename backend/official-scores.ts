@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { newOfficialScoreId, type MongoDatabase, type OfficialScoreDocument } from "./db";
+import { newOfficialScoreId, type MongoDatabase, type OfficialScoreDocument } from "./shared/db";
 
 export const matchNumberSchema = z
   .string({ invalid_type_error: "must be a string" })

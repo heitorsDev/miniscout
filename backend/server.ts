@@ -1,4 +1,4 @@
-import { startMongoDatabase } from "./db";
+import { startMongoDatabase } from "./shared/db";
 import { createApp } from "./app";
 import { MongoMatchBroadcaster } from "./match-broadcaster";
 

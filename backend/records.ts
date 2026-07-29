@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { aggregateGroup } from "./features/scoring/aggregation";
 import { calculateEstimatedScore, type ScoringProfileInput } from "./features/scoring/scoring";
-import { newRecordId, type MongoDatabase, type ScoutRecordDocument } from "./db";
+import { newRecordId, type MongoDatabase, type ScoutRecordDocument } from "./shared/db";
 
 export const scoutRecordInputSchema = z.object({
   scouter_name: z.string().trim().min(1, "must be a non-empty string").max(60),
