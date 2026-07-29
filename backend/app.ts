@@ -50,7 +50,7 @@ import {
   type MatchBroadcaster
 } from "./match-broadcaster";
 import { openMatchNumberStream } from "./match-broadcast-stream";
-import { buildTeamRollups, type ScoutRecordForRollup } from "./team-rollup";
+import { buildTeamRollups, type ScoutRecordForRollup } from "./features/teams/team-rollup";
 
 export type AppOptions = {
   profileStoragePath?: string;
