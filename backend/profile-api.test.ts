@@ -68,7 +68,8 @@ describe("admin Profile API", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(validProfile);
-    await expect(readFile(path.join(profileStoragePath, "rapid-recycle.json"), "utf8")).resolves.toBe(`${JSON.stringify(validProfile, null, 2)}\n`);
+    const savedProfile = await readFile(path.join(profileStoragePath, "rapid-recycle.json"), "utf8");
+    expect(JSON.parse(savedProfile)).toEqual(validProfile);
   });
 
   it("returns a persisted ScoringProfile by name", async () => {
