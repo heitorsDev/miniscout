@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp } from "./app";
+import { createApp } from "../../app";
 
 const exportProfile = {
   name: "export-profile",

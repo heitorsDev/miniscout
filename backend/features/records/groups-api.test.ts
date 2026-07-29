@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp } from "./app";
-import { startMongoFixture } from "./test/mongo-fixture";
+import { createApp } from "../../app";
+import { startMongoFixture } from "../../test/mongo-fixture";
 
 const profile = {
   name: "groups", version: "1", alliance_size: 3, phases: [],

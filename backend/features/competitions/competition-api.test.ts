@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp, type AppOptions } from "./app";
-import { startMongoFixture, type MongoFixture } from "./test/mongo-fixture";
+import { createApp, type AppOptions } from "../../app";
+import { startMongoFixture, type MongoFixture } from "../../test/mongo-fixture";
 
 type CreateAppOptions = AppOptions;
 
