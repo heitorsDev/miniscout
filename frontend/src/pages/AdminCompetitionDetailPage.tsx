@@ -81,6 +81,19 @@ export function AdminCompetitionDetailPage() {
     };
   }, [id, reloadKey]);
 
+  const exportCsv = async () => {
+    const response = await fetch("/api/admin/export/records.csv", { method: "POST" });
+    if (!response.ok) throw new ApiError("Export failed", response.status);
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "records.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const handleDelete = async (recordId: string) => {
     if (!window.confirm("Delete this ScoutRecord? This cannot be undone.")) return;
     setDeletingId(recordId);
@@ -177,6 +190,7 @@ export function AdminCompetitionDetailPage() {
 
       <div className="records-block">
         <h2>Records <button type="button" onClick={reload}>Refresh</button></h2>
+        <button type="button" onClick={exportCsv}>Export CSV</button>
         {deleteError && <p role="alert" className="error">{deleteError}</p>}
         {state.records.length > 0 && (
           <table className="records-table" data-testid="records-table">

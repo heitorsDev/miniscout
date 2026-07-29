@@ -147,31 +147,28 @@ test.describe("admin T06 CRUD + official scores + CSV exports", () => {
     expect(recordsLines.find((line) => line.includes(real1.record_id))).toBeUndefined();
 
     const groupsResponse = await request.get(`${ADMIN_BASE_URL}/api/admin/export/groups.csv`);
-    if (groupsResponse.status() === 200) {
-      const groupsCsv = await groupsResponse.text();
-      const groupsLines = groupsCsv.trimEnd().split("\r\n");
-      const groupsHeader = groupsLines[0].split(",");
-      expect(groupsHeader).toContain("red_score");
-      expect(groupsHeader).toContain("blue_score");
+    expect(groupsResponse.status()).toBe(200);
+    const groupsCsv = await groupsResponse.text();
+    const groupsLines = groupsCsv.trimEnd().split("\r\n");
+    const groupsHeader = groupsLines[0].split(",");
+    expect(groupsHeader).toContain("red_score");
+    expect(groupsHeader).toContain("blue_score");
 
-      const groupsRowFor = (match: string, team: string) =>
-        groupsLines.find((line) => line.split(",").includes(match) && line.split(",").includes(team));
-      const q1GroupRow = groupsRowFor("Q1", "12");
-      expect(q1GroupRow).toBeDefined();
-      const q1Cells = q1GroupRow!.split(",");
-      expect(q1Cells[groupsHeader.indexOf("red_score")]).toBe("110");
-      expect(q1Cells[groupsHeader.indexOf("blue_score")]).toBe("95");
+    const groupsRowFor = (match: string, team: string) =>
+      groupsLines.find((line) => line.split(",").includes(match) && line.split(",").includes(team));
+    const q1GroupRow = groupsRowFor("Q1", "12");
+    expect(q1GroupRow).toBeDefined();
+    const q1Cells = q1GroupRow!.split(",");
+    expect(q1Cells[groupsHeader.indexOf("red_score")]).toBe("110");
+    expect(q1Cells[groupsHeader.indexOf("blue_score")]).toBe("95");
 
-      const q2GroupRow = groupsRowFor("Q2", "12");
-      expect(q2GroupRow).toBeDefined();
-      const q2Cells = q2GroupRow!.split(",");
-      expect(q2Cells[groupsHeader.indexOf("red_score")]).toBe("80");
-      expect(q2Cells[groupsHeader.indexOf("blue_score")]).toBe("100");
+    const q2GroupRow = groupsRowFor("Q2", "12");
+    expect(q2GroupRow).toBeDefined();
+    const q2GroupCells = q2GroupRow!.split(",");
+    expect(q2GroupCells[groupsHeader.indexOf("red_score")]).toBe("80");
+    expect(q2GroupCells[groupsHeader.indexOf("blue_score")]).toBe("100");
 
-      expect(groupsLines.filter((line) => line.includes("9999"))).toHaveLength(0);
-    } else {
-      test.skip(true, "groups.csv endpoint requires T05 (#6) to be merged");
-    }
+    expect(groupsLines.filter((line) => line.includes("9999"))).toHaveLength(0);
 
     const teamsResponse = await request.get(`${ADMIN_BASE_URL}/api/admin/competitions/${competitionId}/teams`);
     expect(teamsResponse.status()).toBe(200);

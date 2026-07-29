@@ -570,7 +570,7 @@ export function createApp(options: AppOptions = {}): Express {
       const exportData = await loadRecordExportData();
       if (!exportData) return void response.status(404).json({ error: "Competition not found" });
       const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
-      response.status(200).set("Content-Disposition", "attachment; filename=\"groups.csv\"").type("text/csv").send(createGroupsCsv(exportData.records, profile));
+      response.status(200).set("Content-Disposition", "attachment; filename=\"groups.csv\"").type("text/csv").send(createGroupsCsv(exportData.records, profile, exportData.officialScoresByMatch));
     } catch (error) { next(error); }
   });
 

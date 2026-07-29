@@ -81,8 +81,13 @@ describe("admin ScoutRecord DELETE endpoint", () => {
 
     const listResponse = await request(app).get(`/api/admin/competitions/${competitionId}/records`);
     expect(listResponse.status).toBe(200);
-    expect(listResponse.body.records).toHaveLength(1);
-    expect(listResponse.body.records[0]._id).toBe(keepId);
+    expect(listResponse.body.groups).toHaveLength(1);
+    expect(listResponse.body.groups[0]).toMatchObject({
+      match_number: "Q1",
+      team_number: "12",
+      record_count: 1,
+      multi_scouted: false
+    });
   });
 
   it("returns 404 when the record id does not exist", async () => {
