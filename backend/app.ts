@@ -31,19 +31,14 @@ import {
 import { createRecordService } from "./features/records/record.service";
 import { createRecordController } from "./features/records/record.controller";
 import { createRecordRoutes } from "./features/records/record.routes";
-import { createGroupsCsv } from "./group-export";
+
 import { createMongoOfficialScoreRepository } from "./features/official-scores/official-score.repository";
 import { createOfficialScoreService } from "./features/official-scores/official-score.service";
 import { createOfficialScoreController } from "./features/official-scores/official-score.controller";
 import { createOfficialScoreRoutes } from "./features/official-scores/official-score.routes";
 import { createTeamsController } from "./features/teams/team.controller";
 import { createTeamsRoutes } from "./features/teams/team.routes";
-import { createMongoRecordExportDataLoader } from "./mongo-record-export";
-import {
-  createRecordsCsv,
-  loadScoringProfile,
-  type RecordExportDataLoader
-} from "./record-export";
+
 import {
   createInMemoryBroadcaster,
   type MatchBroadcaster
@@ -51,6 +46,10 @@ import {
 import { createBroadcastController } from "./features/broadcast/broadcast.controller";
 import { createBroadcastRoutes } from "./features/broadcast/broadcast.routes";
 import { buildTeamRollups, type ScoutRecordForRollup } from "./features/teams/team-rollup";
+import { createMongoRecordExportDataLoader } from "./features/csv-export/csv.repository";
+import { createCsvExportController } from "./features/csv-export/csv.controller";
+import { createCsvExportRoutes } from "./features/csv-export/csv.routes";
+import type { RecordExportDataLoader } from "./features/csv-export/csv.types";
 
 export type AppOptions = {
   profileStoragePath?: string;
@@ -90,6 +89,7 @@ async function loadProfileForCompetition(
   profileStoragePath: string,
   scoringProfileName: string
 ) {
+  const { loadScoringProfile } = await import("./features/csv-export/record-export");
   return loadScoringProfile(
     profileStoragePath,
     path.join(profileStoragePath, `${scoringProfileName}.json`)
@@ -128,6 +128,12 @@ export function createApp(options: AppOptions = {}): Express {
 
   const broadcastController = createBroadcastController(matchBroadcaster);
   app.use("/api", createBroadcastRoutes(broadcastController, matchBroadcaster));
+
+  const csvExportController = createCsvExportController({
+    loadRecordExportData,
+    profileStoragePath
+  });
+  app.use("/api", createCsvExportRoutes(csvExportController));
 
   if (options.mongoDatabase) {
     const competitionRepository = createMongoCompetitionRepository(options.mongoDatabase);
@@ -251,34 +257,6 @@ export function createApp(options: AppOptions = {}): Express {
     }
   });
 
-  app.get("/api/admin/export/groups.csv", async (_request, response, next) => {
-    try {
-      const exportData = await loadRecordExportData();
-      if (!exportData) return void response.status(404).json({ error: "Competition not found" });
-      const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
-      response.status(200).set("Content-Disposition", "attachment; filename=\"groups.csv\"").type("text/csv").send(createGroupsCsv(exportData.records, profile, exportData.officialScoresByMatch));
-    } catch (error) { next(error); }
-  });
-
-  app.post("/api/admin/export/records.csv", async (_request, response, next) => {
-    try {
-      const exportData = await loadRecordExportData();
-      if (!exportData) {
-        response.status(404).json({ error: "Competition not found" });
-        return;
-      }
-
-      const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
-      const csv = createRecordsCsv(exportData.records, profile, exportData.officialScoresByMatch);
-      response
-        .status(200)
-        .set("Content-Disposition", "attachment; filename=\"records.csv\"")
-        .type("text/csv")
-        .send(csv);
-    } catch (error) {
-      next(error);
-    }
-  });
 
   const jsonErrorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     if (error instanceof SyntaxError && "body" in error) {

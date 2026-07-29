@@ -4,7 +4,7 @@ import type {
   OfficialScoreMap,
   RecordExportDataLoader,
   ScoutRecordForExport
-} from "./record-export";
+} from "./csv.types";
 
 type CompetitionDocument = {
   _id: unknown;

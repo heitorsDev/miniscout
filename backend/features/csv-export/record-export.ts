@@ -1,32 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { validateScoringProfile } from "./features/profiles/profile.schema";
-import type { ScoringProfile } from "./features/profiles/profile.types";
-import { calculateEstimatedScore, type RecordValues } from "./features/scoring/scoring";
-
-export type ScoutRecordForExport = {
-  competition_id: unknown;
-  match_number: unknown;
-  team_number: unknown;
-  scouter_name: unknown;
-  submitted_at: unknown;
-  values?: unknown;
-};
-
-export type OfficialScoreMapEntry = {
-  red_score: number;
-  blue_score: number;
-};
-
-export type OfficialScoreMap = ReadonlyMap<string, OfficialScoreMapEntry>;
-
-export type RecordExportData = {
-  scoringProfilePath: string;
-  records: readonly ScoutRecordForExport[];
-  officialScoresByMatch?: OfficialScoreMap;
-};
-
-export type RecordExportDataLoader = () => Promise<RecordExportData | null>;
+import { validateScoringProfile } from "../profiles/profile.schema";
+import type { ScoringProfile } from "../profiles/profile.types";
+import { calculateEstimatedScore, type RecordValues } from "../scoring/scoring";
+import type { OfficialScoreMap, ScoutRecordForExport } from "./csv.types";
 
 function resolveProfileReference(profileStoragePath: string, scoringProfilePath: string): string {
   const storagePath = path.resolve(profileStoragePath);
