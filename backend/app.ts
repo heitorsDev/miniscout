@@ -479,6 +479,47 @@ export function createApp(options: AppOptions = {}): Express {
     }
   });
 
+  app.put("/api/admin/competition/:competitionId/match-number", async (request, response, next) => {
+    const competitionId = request.params.competitionId;
+    const result = matchNumberBodySchema.safeParse(request.body);
+    if (!result.success) {
+      response.status(400).json(matchValidationResponse(
+        result.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+          code: issue.code
+        }))
+      ));
+      return;
+    }
+
+    try {
+      const { value } = result.data;
+      const { updatedAt } = await matchBroadcaster.setCurrent(competitionId, value);
+      response.status(200).json({
+        competition_id: competitionId,
+        current_match_number: value,
+        updated_at: updatedAt
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/admin/competition/:competitionId/match-number", async (request, response, next) => {
+    const competitionId = request.params.competitionId;
+    try {
+      const { updatedAt } = await matchBroadcaster.clearCurrent(competitionId);
+      response.status(200).json({
+        competition_id: competitionId,
+        current_match_number: null,
+        updated_at: updatedAt
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const jsonErrorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json(validationResponse([

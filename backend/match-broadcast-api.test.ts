@@ -65,3 +65,58 @@ describe("scouter match broadcast API", () => {
     expect(zero.status).toBe(400);
   });
 });
+
+describe("admin match broadcast API", () => {
+  it("overrides the current match number from the admin endpoint", async () => {
+    const app = createApp();
+
+    await request(app).put("/api/scouter/competition/default/match-number").send({ value: 7 });
+
+    const override = await request(app)
+      .put("/api/admin/competition/default/match-number")
+      .send({ value: 8 });
+
+    expect(override.status).toBe(200);
+    expect(override.body.competition_id).toBe("default");
+    expect(override.body.current_match_number).toBe(8);
+
+    const observed = await request(app).get("/api/scouter/competition/default");
+    expect(observed.body.current_match_number).toBe(8);
+  });
+
+  it("clears the current match number when admin sends DELETE", async () => {
+    const app = createApp();
+
+    await request(app).put("/api/scouter/competition/default/match-number").send({ value: 7 });
+
+    const clear = await request(app).delete("/api/admin/competition/default/match-number");
+
+    expect(clear.status).toBe(200);
+    expect(clear.body.competition_id).toBe("default");
+    expect(clear.body.current_match_number).toBeNull();
+    expect(typeof clear.body.updated_at).toBe("string");
+
+    const observed = await request(app).get("/api/scouter/competition/default");
+    expect(observed.body.current_match_number).toBeNull();
+  });
+
+  it("lets admin set a value even when no scouter has broadcast yet", async () => {
+    const response = await request(createApp())
+      .put("/api/admin/competition/default/match-number")
+      .send({ value: 12 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.current_match_number).toBe(12);
+  });
+
+  it("rejects malformed admin set payloads with a 400", async () => {
+    const response = await request(createApp())
+      .put("/api/admin/competition/default/match-number")
+      .send({ value: 2.5 });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "value" })])
+    );
+  });
+});
