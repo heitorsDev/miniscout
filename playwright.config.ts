@@ -8,7 +8,7 @@ export default defineConfig({
     timeout: 10_000
   },
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:8080",
+    baseURL: process.env.E2E_BASE_URL ?? "http://127.0.0.1:8081",
     trace: "retain-on-failure"
   },
   reporter: process.env.CI ? "line" : "list"
