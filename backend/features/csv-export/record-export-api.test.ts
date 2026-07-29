@@ -37,13 +37,21 @@ const exportProfile = {
 };
 
 type ExportRecordFixture = {
-  competition_id: unknown;
-  match_number: unknown;
-  team_number: unknown;
-  scouter_name: unknown;
-  submitted_at: unknown;
+  competition_id: string;
+  match_number: string;
+  team_number: string;
+  scouter_name: string;
+  submitted_at: Date;
   values: Record<string, unknown>;
 };
+
+function materializeFixtures(fixtures: ExportRecordFixture[]) {
+  return fixtures.map((fixture, index) => ({
+    _id: `rec_${index}`,
+    scouter_cookie_id: `cookie_${index}`,
+    ...fixture
+  }));
+}
 
 describe("POST /api/admin/export/records.csv", () => {
   const temporaryDirectories: string[] = [];
@@ -62,7 +70,7 @@ describe("POST /api/admin/export/records.csv", () => {
       profileStoragePath,
       loadRecordExportData: async () => ({
         scoringProfilePath,
-        records
+        records: materializeFixtures(records)
       })
     });
   }
@@ -108,7 +116,7 @@ describe("POST /api/admin/export/records.csv", () => {
         match_number: "Q,12",
         team_number: "254",
         scouter_name: "Ada \"Ace\"",
-        submitted_at: "2026-07-29T12:34:56.000Z",
+        submitted_at: new Date("2026-07-29T12:34:56.000Z"),
         values: {
           cycles: 1,
           notes: "Quick, steady\nNo faults",
@@ -183,13 +191,13 @@ describe("POST /api/admin/export/records.csv", () => {
       profileStoragePath,
       loadRecordExportData: async () => ({
         scoringProfilePath,
-        records: [
+        records: materializeFixtures([
           {
             competition_id: "competition-1",
             match_number: "Q12",
             team_number: "254",
             scouter_name: "Ada",
-            submitted_at: "2026-07-29T12:34:56.000Z",
+            submitted_at: new Date("2026-07-29T12:34:56.000Z"),
             values: { cycles: 4 }
           },
           {
@@ -197,10 +205,10 @@ describe("POST /api/admin/export/records.csv", () => {
             match_number: "Q13",
             team_number: "254",
             scouter_name: "Ada",
-            submitted_at: "2026-07-29T12:35:56.000Z",
+            submitted_at: new Date("2026-07-29T12:35:56.000Z"),
             values: { cycles: 7 }
           }
-        ],
+        ]),
         officialScoresByMatch: new Map([
           ["Q12", { red_score: 110, blue_score: 95 }]
         ])
