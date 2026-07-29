@@ -5,5 +5,12 @@
     "rootDir": "..",
     "noEmit": false
   },
-  "include": ["./app.ts", "./profile-schema.ts", "./server.ts"]
+  "include": [
+    "./app.ts",
+    "./mongo-record-export.ts",
+    "./profile-schema.ts",
+    "./record-export.ts",
+    "./scoring.ts",
+    "./server.ts"
+  ]
 }

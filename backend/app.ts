@@ -29,10 +29,18 @@ import {
   listRecordsForCompetitionAdmin,
   scoutRecordInputSchema
 } from "./records";
+import { createMongoRecordExportDataLoader } from "./mongo-record-export";
+import {
+  createRecordsCsv,
+  loadScoringProfile,
+  type RecordExportDataLoader
+} from "./record-export";
 
 export type AppOptions = {
   profileStoragePath?: string;
   mongoDatabase?: MongoDatabase;
+  mongoUrl?: string;
+  loadRecordExportData?: RecordExportDataLoader;
 };
 
 async function saveProfile(profileStoragePath: string, profile: ScoringProfile): Promise<void> {
@@ -72,6 +80,10 @@ function requireMongo(req: express.Request, res: express.Response, next: express
 
 export function createApp(options: AppOptions = {}): Express {
   const profileStoragePath = options.profileStoragePath ?? process.env.PROFILE_STORAGE_PATH ?? "/data/profiles";
+  const loadRecordExportData = options.loadRecordExportData ?? createMongoRecordExportDataLoader({
+    mongoUrl: options.mongoUrl ?? process.env.MONGO_URL ?? "mongodb://127.0.0.1:27017/miniscout",
+    profileStoragePath
+  });
   const app = express();
   app.locals.mongoDatabase = options.mongoDatabase;
 
@@ -383,6 +395,26 @@ export function createApp(options: AppOptions = {}): Express {
         record_id: record.record_id,
         scouter_name: scouter?.display_name ?? parsed.data.scouter_name
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/export/records.csv", async (_request, response, next) => {
+    try {
+      const exportData = await loadRecordExportData();
+      if (!exportData) {
+        response.status(404).json({ error: "Competition not found" });
+        return;
+      }
+
+      const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
+      const csv = createRecordsCsv(exportData.records, profile);
+      response
+        .status(200)
+        .set("Content-Disposition", "attachment; filename=\"records.csv\"")
+        .type("text/csv")
+        .send(csv);
     } catch (error) {
       next(error);
     }
