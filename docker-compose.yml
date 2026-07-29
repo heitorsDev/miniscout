@@ -45,6 +45,18 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
 
+  scouter-proxy:
+    image: caddy:2.8-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    ports:
+      - "${SCOUTER_BIND:-0.0.0.0}:${SCOUTER_PORT:-8082}:80"
+    volumes:
+      - ./Caddyfile.scouter:/etc/caddy/Caddyfile:ro
+
 volumes:
   mongo_data:
   profile_data:
