@@ -2,12 +2,37 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import express, { type ErrorRequestHandler, type Express } from "express";
+import cookieParser from "cookie-parser";
 import { profileNameSchema, validateScoringProfile, type ScoringProfile } from "./profile-schema";
 import { profilePath } from "./profile-storage";
+import type { MongoDatabase } from "./db";
+import {
+  findCompetitionById,
+  findCompetitionByQrToken,
+  listCompetitionsAdmin,
+  mintCompetition,
+  mintCompetitionSchema,
+  type MintCompetitionInput
+} from "./competitions";
+import {
+  SCOUTER_COOKIE,
+  SCOUTER_COOKIE_TTL_SECONDS,
+  draftInputSchema,
+  findScouterByCookie,
+  loadDraft,
+  registerScouter,
+  scouterNameSchema,
+  upsertDraft
+} from "./scouter";
+import {
+  createScoutRecord,
+  listRecordsForCompetitionAdmin,
+  scoutRecordInputSchema
+} from "./records";
 
-type AppOptions = {
+export type AppOptions = {
   profileStoragePath?: string;
-  mongoUrl?: string;
+  mongoDatabase?: MongoDatabase;
 };
 
 async function saveProfile(profileStoragePath: string, profile: ScoringProfile): Promise<void> {
@@ -25,11 +50,33 @@ function validationResponse(errors: Array<{ path: string; message: string; code:
   };
 }
 
+function errorResponse(message: string) {
+  return { error: message };
+}
+
+function fieldErrors(errors: Array<{ path: string; message: string; code: string }>) {
+  return {
+    error: "Invalid request",
+    errors
+  };
+}
+
+function requireMongo(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const db = req.app.locals.mongoDatabase as MongoDatabase | undefined;
+  if (!db) {
+    res.status(503).json(errorResponse("Database not configured"));
+    return;
+  }
+  next();
+}
+
 export function createApp(options: AppOptions = {}): Express {
   const profileStoragePath = options.profileStoragePath ?? process.env.PROFILE_STORAGE_PATH ?? "/data/profiles";
   const app = express();
+  app.locals.mongoDatabase = options.mongoDatabase;
 
   app.use(express.json({ limit: "1mb" }));
+  app.use(cookieParser());
 
   app.get(["/healthz", "/api/healthz"], (_request, response) => {
     response.status(200).json({ status: "ok" });
@@ -69,6 +116,274 @@ export function createApp(options: AppOptions = {}): Express {
         response.status(404).json({ error: "Profile not found" });
         return;
       }
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/competitions", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const parsed = mintCompetitionSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+        code: issue.code
+      }));
+      response.status(400).json(fieldErrors(errors));
+      return;
+    }
+    const input: MintCompetitionInput = parsed.data;
+
+    let profileExists = true;
+    try {
+      await readFile(profilePath(profileStoragePath, input.scoring_profile_name), "utf8");
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        profileExists = false;
+      } else {
+        next(error);
+        return;
+      }
+    }
+    if (!profileExists) {
+      response.status(404).json(errorResponse(`ScoringProfile "${input.scoring_profile_name}" not found`));
+      return;
+    }
+
+    try {
+      const result = await mintCompetition(database, input);
+      response.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/competitions", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    try {
+      const competitions = await listCompetitionsAdmin(database);
+      response.status(200).json({ competitions });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/competitions/:id/records", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const competitionId = String(request.params.id);
+    try {
+      const competition = await findCompetitionById(database, competitionId);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const records = await listRecordsForCompetitionAdmin(database, competition._id);
+      response.status(200).json({ records });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/competitions/:token", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const qrToken = String(request.params.token);
+    try {
+      const competition = await findCompetitionByQrToken(database, qrToken);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+
+      let profile: unknown;
+      try {
+        const contents = await readFile(profilePath(profileStoragePath, competition.scoring_profile_name), "utf8");
+        profile = JSON.parse(contents);
+      } catch (error) {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+          response.status(500).json(errorResponse("Competition profile missing on disk"));
+          return;
+        }
+        next(error);
+        return;
+      }
+
+      response.status(200).json({
+        competition: {
+          _id: competition._id,
+          name: competition.name,
+          scoring_profile_name: competition.scoring_profile_name,
+          qr_token: competition.qr_token
+        },
+        profile
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/competitions/:token/scouter", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const qrToken = String(request.params.token);
+    try {
+      const competition = await findCompetitionByQrToken(database, qrToken);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const nameResult = scouterNameSchema.safeParse(request.body?.name);
+      if (!nameResult.success) {
+        response.status(400).json(fieldErrors(nameResult.error.issues.map((issue) => ({
+          path: `name.${issue.path.join(".")}`,
+          message: issue.message,
+          code: issue.code
+        }))));
+        return;
+      }
+      const registration = await registerScouter(database, nameResult.data, competition.qr_token);
+      response.cookie(SCOUTER_COOKIE, registration.scouter_cookie_id, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: request.secure,
+        maxAge: SCOUTER_COOKIE_TTL_SECONDS * 1000,
+        path: "/"
+      });
+      response.status(200).json({
+        scouter_cookie_id: registration.scouter_cookie_id,
+        scouter_name: registration.scouter_name
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/competitions/:token/scouter", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const cookieId = request.cookies?.[SCOUTER_COOKIE];
+    if (!cookieId) {
+      response.status(204).end();
+      return;
+    }
+    try {
+      const scouter = await findScouterByCookie(database, cookieId);
+      if (!scouter) {
+        response.status(204).end();
+        return;
+      }
+      response.status(200).json({
+        scouter_cookie_id: scouter._id,
+        scouter_name: scouter.display_name
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.put("/api/competitions/:token/draft", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const qrToken = String(request.params.token);
+    const cookieId = request.cookies?.[SCOUTER_COOKIE];
+    if (!cookieId) {
+      response.status(401).json(errorResponse("Scouter cookie missing"));
+      return;
+    }
+    const parsed = draftInputSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      response.status(400).json(fieldErrors(parsed.error.issues.map((issue) => ({
+        path: `${issue.path.join(".")}`,
+        message: issue.message,
+        code: issue.code
+      }))));
+      return;
+    }
+    try {
+      const competition = await findCompetitionByQrToken(database, qrToken);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const draft = await upsertDraft(database, cookieId, competition.qr_token, parsed.data);
+      response.status(200).json({
+        draft: {
+          scouter_name: draft.scouter_name,
+          match_number: draft.match_number,
+          team_number: draft.team_number,
+          values: draft.values,
+          updated_at: draft.updated_at.toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/competitions/:token/draft", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const qrToken = String(request.params.token);
+    const cookieId = request.cookies?.[SCOUTER_COOKIE];
+    if (!cookieId) {
+      response.status(204).end();
+      return;
+    }
+    try {
+      const competition = await findCompetitionByQrToken(database, qrToken);
+      if (!competition) {
+        response.status(204).end();
+        return;
+      }
+      const draft = await loadDraft(database, cookieId, competition.qr_token);
+      if (!draft) {
+        response.status(200).json({ draft: null });
+        return;
+      }
+      response.status(200).json({
+        draft: {
+          scouter_name: draft.scouter_name,
+          match_number: draft.match_number,
+          team_number: draft.team_number,
+          values: draft.values,
+          updated_at: draft.updated_at.toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/competitions/:token/records", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const qrToken = String(request.params.token);
+    const cookieId = request.cookies?.[SCOUTER_COOKIE];
+    if (!cookieId) {
+      response.status(401).json(errorResponse("Scouter cookie missing"));
+      return;
+    }
+    const parsed = scoutRecordInputSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      response.status(400).json(fieldErrors(parsed.error.issues.map((issue) => ({
+        path: `${issue.path.join(".")}`,
+        message: issue.message,
+        code: issue.code
+      }))));
+      return;
+    }
+    try {
+      const competition = await findCompetitionByQrToken(database, qrToken);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const scouter = await findScouterByCookie(database, cookieId);
+      const record = await createScoutRecord(
+        database,
+        competition._id,
+        cookieId,
+        parsed.data
+      );
+      response.status(201).json({
+        record_id: record.record_id,
+        scouter_name: scouter?.display_name ?? parsed.data.scouter_name
+      });
+    } catch (error) {
       next(error);
     }
   });
