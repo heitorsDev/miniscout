@@ -1,33 +1,24 @@
 import { readFile } from "node:fs/promises";
-import { profilePath } from "./profile.repository";
+import { ProfileNotFoundError, profilePath } from "./profile.repository";
 import { validateScoringProfile } from "./profile.schema";
-import type { ProfileValidationResult, ScoringProfile } from "./profile.types";
-
-export async function loadProfileFromDisk(
-  storagePath: string,
-  name: string
-): Promise<{ result: ProfileValidationResult } | { missing: true }> {
-  try {
-    const contents = await readFile(profilePath(storagePath, name), "utf8");
-    return { result: validateScoringProfile(JSON.parse(contents)) };
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return { missing: true };
-    }
-    throw error;
-  }
-}
+import type { ScoringProfile } from "./profile.types";
 
 export async function loadValidatedProfile(
   storagePath: string,
   name: string
 ): Promise<ScoringProfile> {
-  const loaded = await loadProfileFromDisk(storagePath, name);
-  if ("missing" in loaded) {
-    throw new Error(`ScoringProfile "${name}" not found`);
+  let contents: string;
+  try {
+    contents = await readFile(profilePath(storagePath, name), "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new ProfileNotFoundError(name);
+    }
+    throw error;
   }
-  if (!loaded.result.success) {
+  const result = validateScoringProfile(JSON.parse(contents));
+  if (!result.success) {
     throw new Error("Competition references an invalid ScoringProfile");
   }
-  return loaded.result.data;
+  return result.data;
 }
