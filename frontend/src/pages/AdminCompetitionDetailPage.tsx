@@ -136,8 +136,20 @@ export function AdminCompetitionDetailPage() {
     <section className="profile-card">
       <p className="eyebrow">Miniscout Admin</p>
       <h1>{state.competition.name}</h1>
-      <QRCodeSVG value={`${window.location.origin}/scout?c=${state.competition.qr_token}`} size={160} data-testid="competition-qr" />
       <p><Link to="/admin/competitions">Back to Competitions</Link></p>
+
+      <div className="qr-block">
+        <h2>QR token</h2>
+        <p>
+          <Link to={`/admin/competitions/${state.competition._id}/qr`}>Open QR full image</Link>
+          {" · "}
+          <Link to={`/admin/competitions/${state.competition._id}/teams`} data-testid="teams-link">Teams rollup</Link>
+        </p>
+        <QRCodeSVG value={`${window.location.origin}/scout?c=${state.competition.qr_token}`} size={224} data-testid="competition-qr" />
+        <p className="muted">
+          Encodes a scouter URL relative to this origin with <code>?c={state.competition.qr_token}</code>.
+        </p>
+      </div>
 
       <h2>ScoutRecord groups</h2>
       {state.groups.length === 0 ? <p>No records yet.</p> : (

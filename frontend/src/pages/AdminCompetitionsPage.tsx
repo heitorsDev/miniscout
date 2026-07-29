@@ -119,6 +119,7 @@ export function AdminCompetitionsPage() {
               <th scope="col">Name</th>
               <th scope="col">Profile</th>
               <th scope="col">Minted</th>
+              <th scope="col">Tools</th>
             </tr>
           </thead>
           <tbody>
@@ -131,6 +132,9 @@ export function AdminCompetitionsPage() {
                 </td>
                 <td>{competition.scoring_profile_name}</td>
                 <td>{new Date(competition.created_at).toLocaleString()}</td>
+                <td>
+                  <Link to={`/admin/competitions/${competition._id}/teams`}>Teams</Link>
+                </td>
               </tr>
             ))}
           </tbody>
