@@ -50,6 +50,7 @@ import {
   type MatchBroadcaster
 } from "./match-broadcaster";
 import { openMatchNumberStream } from "./match-broadcast-stream";
+import { buildTeamRollups, type ScoutRecordForRollup } from "./team-rollup";
 
 export type AppOptions = {
   profileStoragePath?: string;
@@ -98,6 +99,16 @@ function matchValidationResponse(
     error: "Invalid match number",
     errors
   };
+}
+
+async function loadProfileForCompetition(
+  profileStoragePath: string,
+  scoringProfileName: string
+) {
+  return loadScoringProfile(
+    profileStoragePath,
+    path.join(profileStoragePath, `${scoringProfileName}.json`)
+  );
 }
 
 function requireMongo(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -313,6 +324,38 @@ export function createApp(options: AppOptions = {}): Express {
       }
       const officialScores = await listOfficialScoresForCompetition(database, competition._id);
       response.status(200).json({ official_scores: officialScores });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/competitions/:id/teams", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const competitionId = String(request.params.id);
+    try {
+      const competition = await findCompetitionById(database, competitionId);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+
+      const records = await database.collections.records
+        .find({ competition_id: competition._id })
+        .sort({ match_number: 1, team_number: 1, submitted_at: 1 })
+        .toArray();
+
+      const profile = await loadProfileForCompetition(profileStoragePath, competition.scoring_profile_name);
+      const rollups = buildTeamRollups(
+        records.map((doc): ScoutRecordForRollup => ({
+          _id: doc._id,
+          match_number: doc.match_number,
+          team_number: doc.team_number,
+          values: doc.values
+        })),
+        profile
+      );
+
+      response.status(200).json({ teams: rollups });
     } catch (error) {
       next(error);
     }
