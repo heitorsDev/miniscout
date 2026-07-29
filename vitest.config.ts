@@ -7,6 +7,7 @@ export default defineConfig({
     environment: "node",
     environmentMatchGlobs: [["frontend/**", "jsdom"]],
     include: ["backend/**/*.test.ts", "frontend/**/*.test.{ts,tsx}"],
+    setupFiles: ["vitest.setup.ts"],
     testTimeout: 120_000,
     hookTimeout: 120_000
   }
