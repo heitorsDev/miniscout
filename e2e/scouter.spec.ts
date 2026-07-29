@@ -28,7 +28,7 @@ async function fillScouterFields(page: import("@playwright/test").Page, opts: { 
   for (let i = 0; i < opts.cycles; i += 1) {
     await page.getByRole("button", { name: /Increase Cycles/ }).click();
   }
-  await page.getByLabel("Left zone").check();
+  await page.getByLabel("Left starting area").check();
   await page.getByLabel("Notes").fill("No defense");
 }
 
@@ -73,11 +73,13 @@ test.describe("scouter end-to-end flow", () => {
 
     await fillScouterFields(page, { match: "9", team: "7777", cycles: 4 });
 
+    await expect(page.getByText(/Draft saved/)).toBeVisible();
+
     await page.reload();
     await expect(page.getByTestId("scouter-name")).toHaveText("Bob");
     await expect(page.getByLabel("Match number")).toHaveValue("9");
     await expect(page.getByLabel("Team number")).toHaveValue("7777");
-    await expect(page.getByLabel("Left zone")).toBeChecked();
+    await expect(page.getByLabel("Left starting area")).toBeChecked();
     await expect(page.getByLabel("Notes")).toHaveValue("No defense");
   });
 });
