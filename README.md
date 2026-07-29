@@ -79,6 +79,30 @@ competition_id,match_number,team_number,scouter_name,submitted_at,red_score,blue
 
 `red_score` and `blue_score` are always empty in this milestone (filled by T06). `estimated_score.total` is recomputed on every read using the pure scoring engine so Profile edits always reflect. CSV escaping follows RFC 4180: cells containing `,`, `"`, `\r`, or `\n` are quoted and embedded quotes are doubled.
 
+## Match broadcast API (T04)
+
+`Competition.current_match_number` is shared across every connected scouter via Server-Sent Events. Last write wins across all writers.
+
+```sh
+# Read current value
+curl http://127.0.0.1:8083/api/scouter/competition/default
+
+# Set / override (admin)
+curl -X PUT http://127.0.0.1:8083/api/admin/competition/default/match-number \
+  -H 'Content-Type: application/json' \
+  -d '{"value": 12}'
+
+# Clear
+curl -X DELETE http://127.0.0.1:8083/api/admin/competition/default/match-number
+
+# Subscribe to live updates (text/event-stream)
+curl -N http://127.0.0.1:8083/api/scouter/competition/default/stream
+```
+
+Body schema for `PUT`: `{ "value": <positive integer> }`. Failures return HTTP 400 with `errors[]` per field. The current value is persisted in the `competitions` MongoDB collection so it survives backend restarts.
+
+The Scouter page at `/scout?c=<token>` subscribes to the live broadcast for the competition it loads. The current value is surfaced as a suggested match number on the form (pre-fills while the input is empty).
+
 ## Verify
 
 ```sh
