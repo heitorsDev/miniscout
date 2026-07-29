@@ -51,7 +51,14 @@ export function createFileProfileRepository(storagePath: string): ProfileReposit
       }
     },
     async loadRaw(name) {
-      return readFile(profilePath(storagePath, name), "utf8");
+      try {
+        return await readFile(profilePath(storagePath, name), "utf8");
+      } catch (error) {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+          throw new ProfileNotFoundError(name);
+        }
+        throw error;
+      }
     },
     async save(profile) {
       await mkdir(storagePath, { recursive: true });

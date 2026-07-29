@@ -44,7 +44,7 @@ export function createProfileController(repository: ProfileRepository): ProfileC
         const contents = await repository.loadRaw(nameResult.data);
         response.status(200).type("application/json").send(contents);
       } catch (error) {
-        if (error instanceof ProfileNotFoundError || (error instanceof Error && "code" in error && error.code === "ENOENT")) {
+        if (error instanceof ProfileNotFoundError) {
           response.status(404).json({ error: "Profile not found" });
           return;
         }
