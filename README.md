@@ -52,6 +52,33 @@ Invalid JSON returns HTTP 400 with `errors[]` entries containing `path`, `messag
 6. Submit posts `POST /api/competitions/:token/records` and returns `201` with the record id. Multiple scouters may submit records for the same `(match_number, team_number)`; no uniqueness constraint, no collision rejection.
 7. Admin views submitted records at `/admin/competitions/:id`. Columns: `submitted_at`, `match_number`, `team_number`, `scouter_name`.
 
+## Scoring engine
+
+`backend/scoring.ts` exports `calculateEstimatedScore(recordValues, profile)`. The function is pure: no DB, no I/O, only the raw `values` object and the active ScoringProfile in scope. Each field contributes:
+
+- `counter` / `number` — `value × points_per_unit` (zero when either operand is missing or non-finite).
+- `boolean` — `points_per_unit` when `value === true`, otherwise `0`.
+- `enum` — `points_per_option[value]`; missing key or non-string value yields `0`.
+- `note` — `0`.
+
+Scores aggregate by phase, by scoring target, and as a grand total. Fields attached to a phase contribute to that phase's sub-score; fields with `phase: null` or no declared phase contribute to `total` only. The pure module is exercised by `backend/scoring.test.ts` (42 cases covering each field type × each points shape).
+
+## CSV export
+
+The admin page exposes an **Export CSV** button. Behind it:
+
+```sh
+curl -X POST http://127.0.0.1:8083/api/admin/export/records.csv -o records.csv
+```
+
+The handler reads the active Competition (newest by `created_at`), loads its referenced `ScoringProfile` from the shared volume, and emits one row per `ScoutRecord`:
+
+```
+competition_id,match_number,team_number,scouter_name,submitted_at,red_score,blue_score,[field keys in profile order…],estimated_score.total
+```
+
+`red_score` and `blue_score` are always empty in this milestone (filled by T06). `estimated_score.total` is recomputed on every read using the pure scoring engine so Profile edits always reflect. CSV escaping follows RFC 4180: cells containing `,`, `"`, `\r`, or `\n` are quoted and embedded quotes are doubled.
+
 ## Verify
 
 ```sh
