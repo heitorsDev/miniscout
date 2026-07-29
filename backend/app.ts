@@ -75,10 +75,14 @@ function requireMongo(req: express.Request, res: express.Response, next: express
 
 export function createApp(options: AppOptions = {}): Express {
   const profileStoragePath = options.profileStoragePath ?? process.env.PROFILE_STORAGE_PATH ?? "/data/profiles";
-  const loadRecordExportData = options.loadRecordExportData ?? createMongoRecordExportDataLoader({
-    mongoUrl: options.mongoUrl ?? process.env.MONGO_URL ?? "mongodb://127.0.0.1:27017/miniscout",
-    profileStoragePath
-  });
+  const loadRecordExportData = options.loadRecordExportData ?? (
+    options.mongoDatabase
+      ? createMongoRecordExportDataLoader({
+          database: options.mongoDatabase,
+          profileStoragePath
+        })
+      : async () => null
+  );
   const matchBroadcaster = options.matchBroadcaster ?? createInMemoryBroadcaster();
   const app = express();
   app.locals.mongoDatabase = options.mongoDatabase;
