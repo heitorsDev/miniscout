@@ -19,6 +19,13 @@ import {
   type ScoutRecordInput
 } from "./record.types";
 
+export class RecordSubmissionError extends Error {
+  constructor(public readonly code: "profile_invalid", message: string = "Competition profile invalid") {
+    super(message);
+    this.name = "RecordSubmissionError";
+  }
+}
+
 export type RecordService = {
   createRecord(
     competitionId: string,
@@ -51,8 +58,16 @@ export type RecordServiceDeps = {
 
 export function createRecordService(deps: RecordServiceDeps): RecordService {
   const { repository, scouterService, profileStoragePath } = deps;
-  const loadProfile = (competition: CompetitionDocument) =>
-    loadValidatedProfile(profileStoragePath, competition.scoring_profile_name) as Promise<ScoringProfileInput>;
+  const loadProfile = async (competition: CompetitionDocument): Promise<ScoringProfileInput> => {
+    try {
+      return (await loadValidatedProfile(profileStoragePath, competition.scoring_profile_name)) as ScoringProfileInput;
+    } catch (error) {
+      if (error instanceof Error && /Competition references an invalid ScoringProfile/.test(error.message)) {
+        throw new RecordSubmissionError("profile_invalid");
+      }
+      throw error;
+    }
+  };
   return {
     loadProfileForCompetition: loadProfile,
     async createRecord(competitionId, cookieId, input) {

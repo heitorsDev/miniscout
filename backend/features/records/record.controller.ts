@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { scoutRecordInputSchema } from "./record.schema";
-import type { RecordService } from "./record.service";
+import { RecordSubmissionError, type RecordService } from "./record.service";
 import type { CompetitionService } from "../competitions/competition.service";
 
 export type RecordController = {
@@ -86,6 +86,10 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
         const groups = await recordService.listGroupsForCompetition(competition);
         response.status(200).json({ groups });
       } catch (error) {
+        if (error instanceof RecordSubmissionError) {
+          response.status(500).json(errorResponse(error.message));
+          return;
+        }
         next(error);
       }
     },
@@ -107,6 +111,10 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
         }
         response.status(200).json({ group });
       } catch (error) {
+        if (error instanceof RecordSubmissionError) {
+          response.status(500).json(errorResponse(error.message));
+          return;
+        }
         next(error);
       }
     },
