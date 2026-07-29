@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { aggregateGroup } from "./aggregation";
+import { calculateEstimatedScore, type ScoringProfileInput } from "./scoring";
 import { newRecordId, type MongoDatabase, type ScoutRecordDocument } from "./db";
 
 export const scoutRecordInputSchema = z.object({
@@ -48,13 +50,58 @@ export async function createScoutRecord(
   return { record_id: doc._id };
 }
 
-export async function listRecordsForCompetitionAdmin(
+export async function listGroupsForCompetitionAdmin(
   database: MongoDatabase,
-  competitionId: string
+  competitionId: string,
+  profile: ScoringProfileInput
 ) {
-  const docs = await database.collections.records
-    .find({ competition_id: competitionId })
-    .sort({ submitted_at: -1 })
-    .toArray();
-  return docs.map(toRecordView);
+  const docs = await database.collections.records.find({ competition_id: competitionId }).toArray();
+  const grouped = new Map<string, ScoutRecordDocument[]>();
+  for (const doc of docs) {
+    const key = `${doc.match_number}\u0000${doc.team_number}`;
+    grouped.set(key, [...(grouped.get(key) ?? []), doc]);
+  }
+  return [...grouped.values()].map((records) => ({
+    match_number: records[0].match_number,
+    team_number: records[0].team_number,
+    record_count: records.length,
+    multi_scouted: records.length >= 2,
+    aggregated_total: aggregateGroup(records, profile).total
+  }));
+}
+
+export async function getGroupForCompetitionAdmin(
+  database: MongoDatabase,
+  competitionId: string,
+  matchNumber: string,
+  teamNumber: string,
+  profile: ScoringProfileInput
+) {
+  const docs = await database.collections.records.find({
+    competition_id: competitionId,
+    match_number: matchNumber,
+    team_number: teamNumber
+  }).sort({ submitted_at: 1 }).toArray();
+  if (docs.length === 0) return null;
+  return {
+    match_number: matchNumber,
+    team_number: teamNumber,
+    record_count: docs.length,
+    multi_scouted: docs.length >= 2,
+    records: docs.map((doc) => ({
+      ...toRecordView(doc),
+      estimated_score: calculateEstimatedScore(doc.values, profile)
+    })),
+    aggregated: aggregateGroup(docs, profile)
+  };
+}
+
+export async function findExistingScouts(
+  database: MongoDatabase,
+  competitionId: string,
+  matchNumber: string,
+  teamNumber: string
+) {
+  const docs = await database.collections.records.find({ competition_id: competitionId, match_number: matchNumber, team_number: teamNumber }).toArray();
+  return { count: docs.length, scouter_names: [...new Set(docs.map((doc) => doc.scouter_name))] };
 }

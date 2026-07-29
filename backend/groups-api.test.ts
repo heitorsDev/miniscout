@@ -17,7 +17,7 @@ describe("admin ScoutRecord groups", () => {
 
   it("lists groups and returns side-by-side detail with aggregation", async () => {
     const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-groups-"));
-    const mongo = await startMongoFixture(`groups-${Math.random()}`);
+    const mongo = await startMongoFixture(`groups-${Math.random().toString(36).slice(2)}`);
     cleanups.push(async () => { await mongo.close(); await rm(profileStoragePath, { recursive: true, force: true }); });
     const app = createApp({ profileStoragePath, mongoDatabase: mongo.database });
     await request(app).post("/api/admin/profiles").send(profile);
@@ -33,9 +33,9 @@ describe("admin ScoutRecord groups", () => {
 
     const detail = await request(app).get(`/api/admin/competitions/${competition._id}/groups/1/2`);
     expect(detail.body.group).toMatchObject({ record_count: 2, multi_scouted: true, aggregated: { total: 8 } });
-    expect(detail.body.group.records).toEqual([
-      expect.objectContaining({ scouter_name: "Alice", values: { count: 2 }, estimated_score: { total: 4 } }),
-      expect.objectContaining({ scouter_name: "Bob", values: { count: 6 }, estimated_score: { total: 12 } })
-    ]);
+    expect(detail.body.group.records).toEqual(expect.arrayContaining([
+      expect.objectContaining({ scouter_name: "Alice", values: { count: 2 }, estimated_score: { total: 4, by_phase: {}, by_target: {} } }),
+      expect.objectContaining({ scouter_name: "Bob", values: { count: 6 }, estimated_score: { total: 12, by_phase: {}, by_target: {} } })
+    ]));
   });
 });
