@@ -80,5 +80,5 @@ function resolveScoringProfilePath(
   if (filename === undefined) {
     throw new Error("Competition has no ScoringProfile reference");
   }
-  return path.join(profileStoragePath, filename);
+  return path.join(profileStoragePath, filename.endsWith(".json") ? filename : `${filename}.json`);
 }
