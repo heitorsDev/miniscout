@@ -6,6 +6,7 @@ const adminHealthUrl = process.env.E2E_ADMIN_HEALTH_URL ?? "http://127.0.0.1:808
 const scouterHealthUrl = process.env.E2E_SCOUTER_HEALTH_URL ?? "http://127.0.0.1:8084/api/healthz";
 const readinessTimeoutMs = 90_000;
 const pollIntervalMs = 1_000;
+const composeFiles = ["compose", "-f", "docker-compose.yml", "-f", "e2e/docker-compose.yml"];
 
 async function probe(url: string): Promise<string | null> {
   try {
@@ -39,13 +40,13 @@ async function waitForStack(): Promise<void> {
 
 export default async function globalSetup(_config: FullConfig): Promise<() => Promise<void>> {
   const cwd = path.resolve(__dirname, "..");
-  execFileSync("docker", ["compose", "up", "-d", "--build"], { cwd, stdio: "inherit" });
+  execFileSync("docker", [...composeFiles, "up", "-d", "--build"], { cwd, stdio: "inherit" });
 
   try {
     await waitForStack();
   } catch (error) {
     try {
-      execFileSync("docker", ["compose", "down", "-v"], { cwd, stdio: "inherit" });
+      execFileSync("docker", [...composeFiles, "down", "-v"], { cwd, stdio: "inherit" });
     } catch {
     }
     throw error;
