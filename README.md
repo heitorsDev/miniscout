@@ -113,3 +113,39 @@ npm run typecheck
 npx playwright install chromium
 npm run e2e
 ```
+
+## Backend layout
+
+The backend is organised by feature. Each feature folder owns its
+schema, repository, service, controller, and routes. The composition
+root (`backend/app.ts`) wires each router under `/api`. Shared infra
+lives in `backend/shared/`.
+
+```
+backend/
+  app.ts                  composition root — wires each feature router
+  server.ts               entry point — boots Mongo + MongoBroadcaster + app
+  tsconfig.json
+  shared/
+    db.ts                 MongoClient + collections + id factories
+  test/
+    mongo-fixture.ts      mongodb-memory-server fixture for vitest
+  features/
+    profiles/             admin ScoringProfile upload + fetch
+    competitions/         Competition mint/list/lookup-by-QR
+    records/              ScoutRecord submit/delete + per-competition groups
+    scouter/              Scouter name registration, cookie, draft
+    scoring/              pure scoring engine + group aggregation
+    broadcast/            current_match_number state + SSE stream
+    official-scores/      admin OfficialScore upsert/list + per-match CSV helper
+    csv-export/           records.csv + groups.csv generation, Mongo data loader
+    teams/                per-team per-match rollup
+```
+
+Layered responsibilities:
+- `*.schema.ts` — zod input validation
+- `*.types.ts` — DTOs and shared types
+- `*.repository.ts` — data access only (Mongo or fs)
+- `*.service.ts` — orchestrates repositories; no HTTP, no direct DB
+- `*.controller.ts` — parses request, validates, calls service, formats response
+- `*.routes.ts` — `express.Router()` wiring verbs to controller methods
