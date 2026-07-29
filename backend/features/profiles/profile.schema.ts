@@ -56,17 +56,7 @@ export const scoringProfileSchema = z.object({
   fields: z.array(scoringFieldSchema)
 }).strict();
 
-export type ScoringProfile = z.infer<typeof scoringProfileSchema>;
-
-export type ProfileValidationError = {
-  path: string;
-  message: string;
-  code: string;
-};
-
-export type ProfileValidationResult =
-  | { success: true; data: ScoringProfile }
-  | { success: false; errors: ProfileValidationError[] };
+import type { ProfileValidationResult, ScoringProfile } from "./profile.types";
 
 function formatPath(path: (string | number)[]): string {
   return path.reduce<string>((result, segment) => {
@@ -80,7 +70,7 @@ function formatPath(path: (string | number)[]): string {
 export function validateScoringProfile(input: unknown): ProfileValidationResult {
   const result = scoringProfileSchema.safeParse(input);
   if (result.success) {
-    return result;
+    return { success: true, data: result.data as ScoringProfile };
   }
 
   return {

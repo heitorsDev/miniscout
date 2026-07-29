@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { validateScoringProfile, type ScoringProfile } from "./profile-schema";
+import { validateScoringProfile } from "./features/profiles/profile.schema";
+import type { ScoringProfile } from "./features/profiles/profile.types";
 import { calculateEstimatedScore, type RecordValues } from "./features/scoring/scoring";
 
 export type ScoutRecordForExport = {

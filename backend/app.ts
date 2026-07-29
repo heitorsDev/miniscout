@@ -4,8 +4,9 @@ import { randomUUID } from "node:crypto";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import cookieParser from "cookie-parser";
 import { z } from "zod";
-import { profileNameSchema, validateScoringProfile, type ScoringProfile } from "./profile-schema";
-import { profilePath } from "./profile-storage";
+import { profileNameSchema, validateScoringProfile } from "./features/profiles/profile.schema";
+import type { ScoringProfile } from "./features/profiles/profile.types";
+import { profilePath } from "./features/profiles/profile.repository";
 import type { MongoDatabase } from "./db";
 import {
   findCompetitionById,
