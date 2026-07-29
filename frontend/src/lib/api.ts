@@ -1,10 +1,12 @@
 import type {
   Competition,
   DraftValue,
+  OfficialScore,
   ScoutGroup,
   ScoutGroupSummary,
   ScoringProfile,
-  ScouterDraft
+  ScouterDraft,
+  TeamRollup
 } from "./types";
 
 export type ApiErrorBody = {
@@ -66,6 +68,27 @@ export const api = {
   },
   getAdminGroup(competitionId: string, matchNumber: string, teamNumber: string): Promise<{ group: ScoutGroup }> {
     return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/groups/${encodeURIComponent(matchNumber)}/${encodeURIComponent(teamNumber)}`);
+  },
+  async deleteAdminRecord(recordId: string): Promise<void> {
+    const response = await fetch(`/api/admin/records/${encodeURIComponent(recordId)}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    if (!response.ok && response.status !== 204) {
+      await parseResponse(response);
+    }
+  },
+  listOfficialScores(competitionId: string): Promise<{ official_scores: OfficialScore[] }> {
+    return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/official-scores`);
+  },
+  upsertOfficialScore(competitionId: string, payload: { match_number: string; red_score: number; blue_score: number }): Promise<OfficialScore> {
+    return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/official-scores`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+  },
+  listAdminTeams(competitionId: string): Promise<{ teams: TeamRollup[] }> {
+    return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/teams`);
   },
   lookupCompetition(token: string): Promise<CompetitionLookupResponse> {
     return request(`/api/competitions/${encodeURIComponent(token)}`);

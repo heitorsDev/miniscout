@@ -79,6 +79,28 @@ export type ScoutGroup = ScoutGroupSummary & {
   aggregated: { total: number; fields: Record<string, AggregatedField> };
 };
 
+export type OfficialScore = {
+  _id: string;
+  competition_id: string;
+  match_number: string;
+  red_score: number;
+  blue_score: number;
+  updated_at: string;
+};
+
+export type TeamMatchRollup = {
+  match_number: string;
+  record_count: number;
+  median_estimated_score: number;
+};
+
+export type TeamRollup = {
+  team_number: string;
+  record_count: number;
+  matches_scouted: string[];
+  matches: TeamMatchRollup[];
+};
+
 export function defaultValueForField(field: ScoringField): FieldValue {
   switch (field.type) {
     case "counter":

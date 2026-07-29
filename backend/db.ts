@@ -40,11 +40,21 @@ export type ScoutRecordDocument = {
   submitted_at: Date;
 };
 
+export type OfficialScoreDocument = {
+  _id: string;
+  competition_id: string;
+  match_number: string;
+  red_score: number;
+  blue_score: number;
+  updated_at: Date;
+};
+
 export type Collections = {
   competitions: Collection<CompetitionDocument>;
   scouters: Collection<ScouterDocument>;
   drafts: Collection<DraftDocument>;
   records: Collection<ScoutRecordDocument>;
+  official_scores: Collection<OfficialScoreDocument>;
 };
 
 export type MongoDatabase = {
@@ -62,11 +72,16 @@ export async function startMongoDatabase(url: string, databaseName = "miniscout"
     competitions: db.collection<CompetitionDocument>("competitions"),
     scouters: db.collection<ScouterDocument>("scouters"),
     drafts: db.collection<DraftDocument>("drafts"),
-    records: db.collection<ScoutRecordDocument>("records")
+    records: db.collection<ScoutRecordDocument>("records"),
+    official_scores: db.collection<OfficialScoreDocument>("official_scores")
   };
   await collections.competitions.createIndex({ qr_token: 1 }, { unique: true });
   await collections.competitions.createIndex({ created_at: -1 });
   await collections.records.createIndex({ competition_id: 1, submitted_at: -1 });
+  await collections.official_scores.createIndex(
+    { competition_id: 1, match_number: 1 },
+    { unique: true }
+  );
   await collections.drafts.createIndex(
     { scouter_cookie_id: 1, competition_token: 1 },
     { unique: true }
@@ -87,6 +102,10 @@ export function newCompetitionId(): string {
 
 export function newRecordId(): string {
   return `rec_${randomUUID()}`;
+}
+
+export function newOfficialScoreId(): string {
+  return `off_${randomUUID()}`;
 }
 
 export function newScouterId(): string {

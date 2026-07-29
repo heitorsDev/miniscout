@@ -3,6 +3,7 @@ import { AdminLayout } from "./layouts/AdminLayout";
 import { AdminProfilePage } from "./pages/AdminProfilePage";
 import { AdminCompetitionsPage } from "./pages/AdminCompetitionsPage";
 import { AdminCompetitionDetailPage } from "./pages/AdminCompetitionDetailPage";
+import { AdminTeamsPage } from "./pages/AdminTeamsPage";
 import { ScouterPage } from "./pages/ScouterPage";
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
         <Route path="/admin" element={<AdminProfilePage />} />
         <Route path="/admin/competitions" element={<AdminCompetitionsPage />} />
         <Route path="/admin/competitions/:id" element={<AdminCompetitionDetailPage />} />
+        <Route path="/admin/competitions/:id/teams" element={<AdminTeamsPage />} />
       </Route>
       <Route path="/scout" element={<ScouterPage />} />
       <Route path="*" element={<Navigate to="/admin" replace />} />

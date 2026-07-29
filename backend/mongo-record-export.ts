@@ -1,6 +1,7 @@
 import { MongoClient } from "mongodb";
 import path from "node:path";
 import type {
+  OfficialScoreMap,
   RecordExportDataLoader,
   ScoutRecordForExport
 } from "./record-export";
@@ -10,6 +11,13 @@ type CompetitionDocument = {
   scoring_profile_path?: string;
   scoring_profile_name?: string;
   created_at?: Date;
+};
+
+type OfficialScoreDocument = {
+  competition_id: unknown;
+  match_number: string;
+  red_score: number;
+  blue_score: number;
 };
 
 type CreateLoaderOptions = {
@@ -62,9 +70,17 @@ export function createMongoRecordExportDataLoader(options: CreateLoaderOptions):
       }
     }
 
+    const officialScores = await db.collection<OfficialScoreDocument>("official_scores")
+      .find({ competition_id: competition._id })
+      .toArray();
+    const officialScoresByMatch: OfficialScoreMap = new Map(
+      officialScores.map((doc) => [doc.match_number, { red_score: doc.red_score, blue_score: doc.blue_score }])
+    );
+
     return {
       scoringProfilePath,
-      records
+      records,
+      officialScoresByMatch
     };
   };
 }
