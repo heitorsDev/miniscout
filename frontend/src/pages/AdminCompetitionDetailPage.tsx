@@ -1,123 +1,35 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { api, ApiError } from "../lib/api";
-import type { Competition, ScoutRecord } from "../lib/types";
+import { api } from "../lib/api";
+import type { Competition, ScoutGroup, ScoutGroupSummary } from "../lib/types";
 
-type State =
-  | { status: "loading" }
-  | { status: "ready"; competition: Competition; records: ScoutRecord[]; qrUrl: string }
-  | { status: "not_found" }
-  | { status: "error"; message: string };
+type State = { status: "loading" } | { status: "ready"; competition: Competition; groups: ScoutGroupSummary[] } | { status: "error" };
 
 export function AdminCompetitionDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id ?? "";
+  const { id = "" } = useParams<{ id: string }>();
   const [state, setState] = useState<State>({ status: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
-  const reload = useCallback(() => setReloadKey((value) => value + 1), []);
-
+  const [selected, setSelected] = useState<ScoutGroup | null>(null);
   useEffect(() => {
-    let cancelled = false;
-    setState({ status: "loading" });
-    Promise.all([api.listAdminCompetitions(), id ? api.listAdminRecords(id).catch(() => ({ records: [] as ScoutRecord[] })) : Promise.resolve({ records: [] as ScoutRecord[] })])
-      .then(([competitionsResponse, recordsResponse]) => {
-        if (cancelled) return;
-        const competition = competitionsResponse.competitions.find((candidate) => candidate._id === id);
-        if (!competition) {
-          setState({ status: "not_found" });
-          return;
-        }
-        const qrUrl = `?c=${competition.qr_token}`;
-        setState({
-          status: "ready",
-          competition,
-          records: recordsResponse.records,
-          qrUrl
-        });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setState({ status: "error", message: error instanceof ApiError ? error.message : "Could not load competition" });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id, reloadKey]);
-
-  if (state.status === "loading") {
-    return (
-      <section className="profile-card">
-        <p className="status">Loading…</p>
-      </section>
-    );
-  }
-
-  if (state.status === "not_found") {
-    return (
-      <section className="profile-card">
-        <p role="alert" className="error">Competition not found.</p>
-        <Link to="/admin/competitions">Back to Competitions</Link>
-      </section>
-    );
-  }
-
-  if (state.status === "error") {
-    return (
-      <section className="profile-card">
-        <p role="alert" className="error">{state.message}</p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="profile-card" aria-labelledby="detail-title">
-      <p className="eyebrow">Miniscout Admin</p>
-      <h1 id="detail-title">{state.competition.name}</h1>
-      <p className="intro">
-        Profile <code>{state.competition.scoring_profile_name}</code> · minted {new Date(state.competition.created_at).toLocaleString()}
-      </p>
-
-      <div className="qr-block">
-        <h2>QR token</h2>
-        <p>
-          <Link to={`/admin/competitions/${state.competition._id}/qr`}>Open QR full image</Link>
-        </p>
-        <QRCodeSVG value={`${window.location.origin}${state.qrUrl}`} size={224} data-testid="competition-qr" />
-        <p className="muted">
-          Encodes a scouter URL relative to this origin with <code>?c={state.competition.qr_token}</code>.
-        </p>
-      </div>
-
-      <div className="records-block">
-        <h2>
-          Records <button type="button" onClick={reload}>Refresh</button>
-        </h2>
-        {state.records.length === 0 ? (
-          <p className="muted">No records yet.</p>
-        ) : (
-          <table className="records-table" data-testid="records-table">
-            <thead>
-              <tr>
-                <th scope="col">Submitted at</th>
-                <th scope="col">Match</th>
-                <th scope="col">Team</th>
-                <th scope="col">Scouter name</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.records.map((record) => (
-                <tr key={record._id} data-testid="record-row">
-                  <td>{new Date(record.submitted_at).toLocaleString()}</td>
-                  <td>{record.match_number}</td>
-                  <td>{record.team_number}</td>
-                  <td>{record.scouter_name}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </section>
-  );
+    Promise.all([api.listAdminCompetitions(), api.listAdminGroups(id)])
+      .then(([competitions, groups]) => {
+        const competition = competitions.competitions.find((item) => item._id === id);
+        setState(competition ? { status: "ready", competition, groups: groups.groups } : { status: "error" });
+      }).catch(() => setState({ status: "error" }));
+  }, [id]);
+  if (state.status === "loading") return <p className="status">Loading…</p>;
+  if (state.status === "error") return <p role="alert" className="error">Competition not found.</p>;
+  return <section className="profile-card">
+    <p className="eyebrow">Miniscout Admin</p><h1>{state.competition.name}</h1>
+    <QRCodeSVG value={`${window.location.origin}/scout?c=${state.competition.qr_token}`} size={160} data-testid="competition-qr" />
+    <p><Link to="/admin/competitions">Back to Competitions</Link></p>
+    <h2>ScoutRecord groups</h2>
+    {state.groups.length === 0 ? <p>No records yet.</p> : <table className="records-table" data-testid="groups-table"><thead><tr><th>Match</th><th>Team</th><th>Records</th><th>Multi-scouted</th><th>Aggregated total</th></tr></thead><tbody>
+      {state.groups.map((group) => <tr key={`${group.match_number}-${group.team_number}`} data-testid="group-row"><td><button type="button" onClick={() => api.getAdminGroup(id, group.match_number, group.team_number).then((result) => setSelected(result.group))}>{group.match_number}</button></td><td>{group.team_number}</td><td>{group.record_count}</td><td>{group.multi_scouted ? "Yes" : "No"}</td><td>{group.aggregated_total}</td></tr>)}
+    </tbody></table>}
+    {selected && <section data-testid="group-detail"><h2>Aggregated view</h2><p>Median EstimatedScore total: <strong>{selected.aggregated.total}</strong></p>
+      <dl>{Object.entries(selected.aggregated.fields).map(([key, field]) => <div key={key}><dt>{key}</dt><dd>{String(field.value ?? "No consensus")}{field.no_consensus && <strong> — no consensus</strong>}</dd></div>)}</dl>
+      <h2>{selected.record_count} individual records</h2><div className="record-columns">{selected.records.map((record) => <article key={record._id} data-testid="record-card"><h3>{record.scouter_name}</h3><pre>{JSON.stringify(record.values, null, 2)}</pre><p>EstimatedScore: {record.estimated_score.total}</p></article>)}</div>
+    </section>}
+  </section>;
 }
