@@ -32,6 +32,7 @@ import {
   listGroupsForCompetitionAdmin,
   scoutRecordInputSchema
 } from "./records";
+import { createGroupsCsv } from "./group-export";
 import { createMongoRecordExportDataLoader } from "./mongo-record-export";
 import {
   createRecordsCsv,
@@ -453,6 +454,15 @@ export function createApp(options: AppOptions = {}): Express {
     } catch (error) {
       next(error);
     }
+  });
+
+  app.get("/api/admin/export/groups.csv", async (_request, response, next) => {
+    try {
+      const exportData = await loadRecordExportData();
+      if (!exportData) return void response.status(404).json({ error: "Competition not found" });
+      const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
+      response.status(200).set("Content-Disposition", "attachment; filename=\"groups.csv\"").type("text/csv").send(createGroupsCsv(exportData.records, profile));
+    } catch (error) { next(error); }
   });
 
   app.post("/api/admin/export/records.csv", async (_request, response, next) => {
