@@ -1,0 +1,162 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color: #17212b;
+  background: #eef2f5;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.admin-shell {
+  min-height: 100vh;
+  padding: 48px 20px;
+}
+
+.profile-card {
+  width: min(100%, 880px);
+  margin: 0 auto;
+  padding: 36px;
+  background: #ffffff;
+  border: 1px solid #d7dee5;
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgb(30 53 72 / 10%);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #526b7d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: 2.25rem;
+}
+
+h2 {
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+}
+
+.intro {
+  margin: 0 0 28px;
+  color: #52606b;
+}
+
+.control-group {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 12px;
+}
+
+label {
+  color: #34495a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input[type="file"],
+input[type="text"],
+input:not([type]) {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #b7c4ce;
+  border-radius: 7px;
+  background: #fbfcfd;
+}
+
+button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 7px;
+  color: #ffffff;
+  background: #1769aa;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: #125487;
+}
+
+.inline-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.inline-controls input {
+  flex: 1;
+}
+
+.fetch-group {
+  margin-top: 34px;
+}
+
+.status,
+.error {
+  margin: 18px 0 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+
+.status {
+  color: #155d39;
+  background: #e2f4e9;
+}
+
+.error {
+  color: #8c2222;
+  background: #fbe6e6;
+}
+
+.json-preview {
+  max-height: 320px;
+  overflow: auto;
+  margin: 0 0 24px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #17212b;
+  color: #e6edf3;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.diff-preview {
+  border-left: 4px solid #3ba55c;
+}
+
+@media (max-width: 600px) {
+  .admin-shell {
+    padding: 20px 12px;
+  }
+
+  .profile-card {
+    padding: 24px 18px;
+  }
+
+  .inline-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

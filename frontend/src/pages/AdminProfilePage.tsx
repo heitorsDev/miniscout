@@ -1,0 +1,144 @@
+import { useState } from "react";
+
+type ValidationError = {
+  path: string;
+  message: string;
+};
+
+type ApiError = {
+  error?: string;
+  errors?: ValidationError[];
+};
+
+function formatDiff(profile: unknown): string {
+  return JSON.stringify(profile, null, 2)
+    .split("\n")
+    .map((line) => `+ ${line}`)
+    .join("\n");
+}
+
+async function parseResponse(response: Response): Promise<unknown> {
+  const body = await response.json() as ApiError | unknown;
+  if (!response.ok) {
+    const apiError = body as ApiError;
+    const details = apiError.errors?.map(({ path, message }) => `${path}: ${message}`).join("; ");
+    throw new Error(details || apiError.error || "Request failed");
+  }
+  return body;
+}
+
+export function AdminProfilePage() {
+  const [profileName, setProfileName] = useState("");
+  const [draftProfile, setDraftProfile] = useState<unknown>(null);
+  const [fetchedProfile, setFetchedProfile] = useState<unknown>(null);
+  const [diffPreview, setDiffPreview] = useState("");
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setStatus("");
+    setError("");
+    try {
+      const parsed = JSON.parse(await file.text()) as { name?: unknown };
+      setDraftProfile(parsed);
+      if (typeof parsed.name === "string") {
+        setProfileName(parsed.name);
+      }
+      setDiffPreview(formatDiff(parsed));
+    } catch {
+      setDraftProfile(null);
+      setDiffPreview("");
+      setError("Selected file must contain valid JSON");
+    }
+  };
+
+  const uploadProfile = async () => {
+    if (!draftProfile) {
+      setError("Choose Profile JSON file first");
+      return;
+    }
+
+    setStatus("");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/profiles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(draftProfile)
+      });
+      const saved = await parseResponse(response);
+      setFetchedProfile(saved);
+      setStatus("Profile saved");
+      setDiffPreview(formatDiff(saved));
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Profile upload failed");
+    }
+  };
+
+  const fetchProfile = async () => {
+    const name = profileName.trim();
+    if (!name) {
+      setError("Enter Profile name first");
+      return;
+    }
+
+    setStatus("");
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/profiles/${encodeURIComponent(name)}`);
+      const profile = await parseResponse(response);
+      setFetchedProfile(profile);
+      setStatus("Profile fetched");
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : "Profile fetch failed");
+    }
+  };
+
+  return (
+    <main className="admin-shell">
+      <section className="profile-card" aria-labelledby="profile-title">
+        <p className="eyebrow">Miniscout Admin</p>
+        <h1 id="profile-title">Profile</h1>
+        <p className="intro">Upload canonical ScoringProfile JSON or fetch persisted Profile by name.</p>
+
+        <div className="control-group">
+          <label htmlFor="profile-file">Profile JSON file</label>
+          <input id="profile-file" type="file" accept="application/json,.json" onChange={handleFileChange} />
+        </div>
+        <button type="button" onClick={uploadProfile}>Upload profile</button>
+
+        <div className="control-group fetch-group">
+          <label htmlFor="profile-name">Profile name</label>
+          <div className="inline-controls">
+            <input id="profile-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} />
+            <button type="button" onClick={fetchProfile}>Fetch profile</button>
+          </div>
+        </div>
+
+        {status && <p role="status" className="status">{status}</p>}
+        {error && <p role="alert" className="error">{error}</p>}
+
+        {diffPreview && (
+          <section aria-labelledby="diff-title">
+            <h2 id="diff-title">Diff preview</h2>
+            <pre data-testid="diff-preview" className="json-preview diff-preview">{diffPreview}</pre>
+          </section>
+        )}
+
+        {fetchedProfile !== null && (
+          <section aria-labelledby="fetched-title">
+            <h2 id="fetched-title">Fetched Profile</h2>
+            <pre data-testid="fetched-profile" className="json-preview">{JSON.stringify(fetchedProfile, null, 2)}</pre>
+          </section>
+        )}
+      </section>
+    </main>
+  );
+}
