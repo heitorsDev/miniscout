@@ -46,8 +46,10 @@ export const scoringFieldSchema = z.discriminatedUnion("type", [
   noteFieldSchema
 ]);
 
+export const profileNameSchema = nonEmptyString.regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, "must contain only letters, numbers, dots, hyphens, or underscores");
+
 export const scoringProfileSchema = z.object({
-  name: nonEmptyString.regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, "must contain only letters, numbers, dots, hyphens, or underscores"),
+  name: profileNameSchema,
   version: nonEmptyString,
   alliance_size: z.union([z.literal(2), z.literal(3)]),
   phases: z.array(nonEmptyString),
