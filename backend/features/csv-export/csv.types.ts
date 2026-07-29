@@ -1,11 +1,8 @@
-export type ScoutRecordForExport = {
-  competition_id: unknown;
-  match_number: unknown;
-  team_number: unknown;
-  scouter_name: unknown;
-  submitted_at: unknown;
-  values?: unknown;
-};
+import type { ScoutRecordDocument, OfficialScoreDocument } from "../../shared/db";
+
+export type ScoutRecordForExport = ScoutRecordDocument;
+
+export type OfficialScoreForExport = OfficialScoreDocument;
 
 export type OfficialScoreMapEntry = {
   red_score: number;

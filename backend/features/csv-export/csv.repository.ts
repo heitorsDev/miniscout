@@ -11,10 +11,16 @@ type CreateLoaderOptions = {
   profileStoragePath: string;
 };
 
+type CompetitionWithProfilePath = {
+  _id: string;
+  scoring_profile_name: string;
+  scoring_profile_path?: string;
+};
+
 export function createMongoRecordExportDataLoader(options: CreateLoaderOptions): RecordExportDataLoader {
   const { database, profileStoragePath } = options;
   return async () => {
-    const competition = await database.collections.competitions.findOne(
+    const competition = (await database.collections.competitions.findOne(
       {
         $or: [
           { scoring_profile_path: { $exists: true } },
@@ -22,21 +28,21 @@ export function createMongoRecordExportDataLoader(options: CreateLoaderOptions):
         ]
       },
       { sort: { created_at: -1, _id: -1 } }
-    );
+    )) as CompetitionWithProfilePath | null;
     if (!competition) {
       return null;
     }
 
     const scoringProfilePath = resolveScoringProfilePath(
       profileStoragePath,
-      (competition as { scoring_profile_path?: string }).scoring_profile_path,
+      competition.scoring_profile_path,
       competition.scoring_profile_name
     );
 
     const records = (await database.collections.records
       .find({ competition_id: competition._id })
       .sort({ submitted_at: 1, _id: 1 })
-      .toArray()) as unknown as readonly ScoutRecordForExport[];
+      .toArray()) as readonly ScoutRecordForExport[];
 
     const officialScores = await database.collections.official_scores
       .find({ competition_id: competition._id })
