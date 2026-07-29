@@ -26,7 +26,7 @@ function matchValidationResponse(
 export function createBroadcastController(broadcaster: MatchBroadcaster): BroadcastController {
   return {
     async getCurrent(request, response, next) {
-      const competitionId = request.params.competitionId;
+      const competitionId = String(request.params.competitionId);
       try {
         const currentMatchNumber = await broadcaster.getCurrent(competitionId);
         response.status(200).json({ competition_id: competitionId, current_match_number: currentMatchNumber });
@@ -35,7 +35,7 @@ export function createBroadcastController(broadcaster: MatchBroadcaster): Broadc
       }
     },
     async setCurrent(request, response, next) {
-      const competitionId = request.params.competitionId;
+      const competitionId = String(request.params.competitionId);
       const result = matchNumberBodySchema.safeParse(request.body);
       if (!result.success) {
         response.status(400).json(matchValidationResponse(
@@ -60,7 +60,7 @@ export function createBroadcastController(broadcaster: MatchBroadcaster): Broadc
       }
     },
     async clearCurrent(request, response, next) {
-      const competitionId = request.params.competitionId;
+      const competitionId = String(request.params.competitionId);
       try {
         const { updatedAt } = await broadcaster.clearCurrent(competitionId);
         response.status(200).json({

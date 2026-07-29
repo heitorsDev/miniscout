@@ -1,4 +1,4 @@
-import type { OfficialScoreMap } from "./record-export";
+import type { OfficialScoreMap } from "../csv-export/csv.types";
 
 export type CsvRowWithMatch = {
   match_number: string;

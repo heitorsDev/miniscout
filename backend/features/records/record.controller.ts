@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { scoutRecordInputSchema } from "./record.schema";
 import type { RecordService } from "./record.service";
-import { loadScoringProfile } from "../profiles/profile.service";
-import { loadProfileFromDisk } from "../profiles/profile.service";
 import { profilePath } from "../profiles/profile.repository";
 import { readFile } from "node:fs/promises";
 import { validateScoringProfile } from "../profiles/profile.schema";
@@ -159,6 +157,3 @@ async function loadValidatedProfileForCompetition(
     throw error;
   }
 }
-
-// Re-export to avoid unused import warnings during the migration.
-export { loadScoringProfile, loadProfileFromDisk };

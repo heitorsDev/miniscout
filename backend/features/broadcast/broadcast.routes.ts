@@ -1,4 +1,4 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 import type { BroadcastController } from "./broadcast.controller";
 import type { MatchBroadcaster } from "./broadcaster";
 import { openMatchNumberStream } from "./broadcast.stream";

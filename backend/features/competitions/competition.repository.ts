@@ -1,5 +1,5 @@
 import { newCompetitionId, newOpaqueToken, type CompetitionDocument, type MongoDatabase } from "../../shared/db";
-import type { CompetitionView, MintCompetitionInput, MintCompetitionResult } from "./competition.types";
+import type { CompetitionView, MintCompetitionInput } from "./competition.types";
 
 function toCompetitionView(doc: CompetitionDocument): CompetitionView {
   return {

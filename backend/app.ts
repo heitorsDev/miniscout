@@ -1,11 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import cookieParser from "cookie-parser";
-import { z } from "zod";
-import { validateScoringProfile } from "./features/profiles/profile.schema";
-import { profilePath } from "./features/profiles/profile.repository";
 import { createFileProfileRepository } from "./features/profiles/profile.repository";
 import { createProfileController } from "./features/profiles/profile.controller";
 import { createProfileRoutes } from "./features/profiles/profile.routes";
@@ -18,8 +12,7 @@ import { createCompetitionController } from "./features/competitions/competition
 import { createCompetitionLookupController } from "./features/competitions/competition.lookup.controller";
 import { createCompetitionRoutes } from "./features/competitions/competition.routes";
 import {
-  SCOUTER_COOKIE,
-  SCOUTER_COOKIE_TTL_SECONDS
+  SCOUTER_COOKIE
 } from "./features/scouter/scouter.types";
 import { createMongoScouterRepository } from "./features/scouter/scouter.repository";
 import { createScouterService } from "./features/scouter/scouter.service";
@@ -45,7 +38,6 @@ import {
 } from "./features/broadcast/broadcaster";
 import { createBroadcastController } from "./features/broadcast/broadcast.controller";
 import { createBroadcastRoutes } from "./features/broadcast/broadcast.routes";
-import { buildTeamRollups, type ScoutRecordForRollup } from "./features/teams/team-rollup";
 import { createMongoRecordExportDataLoader } from "./features/csv-export/csv.repository";
 import { createCsvExportController } from "./features/csv-export/csv.controller";
 import { createCsvExportRoutes } from "./features/csv-export/csv.routes";
@@ -59,14 +51,6 @@ export type AppOptions = {
   matchBroadcaster?: MatchBroadcaster;
 };
 
-async function saveProfile(profileStoragePath: string, profile: ScoringProfile): Promise<void> {
-  await mkdir(profileStoragePath, { recursive: true });
-  const destination = profilePath(profileStoragePath, profile.name);
-  const temporaryPath = path.join(profileStoragePath, `.${profile.name}.${randomUUID()}.tmp`);
-  await writeFile(temporaryPath, `${JSON.stringify(profile, null, 2)}\n`, "utf8");
-  await rename(temporaryPath, destination);
-}
-
 function validationResponse(errors: Array<{ path: string; message: string; code: string }>) {
   return {
     error: "Invalid ScoringProfile",
@@ -76,24 +60,6 @@ function validationResponse(errors: Array<{ path: string; message: string; code:
 
 function errorResponse(message: string) {
   return { error: message };
-}
-
-function fieldErrors(errors: Array<{ path: string; message: string; code: string }>) {
-  return {
-    error: "Invalid request",
-    errors
-  };
-}
-
-async function loadProfileForCompetition(
-  profileStoragePath: string,
-  scoringProfileName: string
-) {
-  const { loadScoringProfile } = await import("./features/csv-export/record-export");
-  return loadScoringProfile(
-    profileStoragePath,
-    path.join(profileStoragePath, `${scoringProfileName}.json`)
-  );
 }
 
 function requireMongo(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -176,86 +142,6 @@ export function createApp(options: AppOptions = {}): Express {
     });
     app.use("/api", createTeamsRoutes(teamsController, requireMongo));
   }
-
-  app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const competitionId = String(request.params.id);
-    const parsed = officialScoreUpsertSchema.safeParse({
-      ...(request.body ?? {}),
-      competition_id: competitionId
-    });
-    if (!parsed.success) {
-      const errors = parsed.error.issues.map((issue) => ({
-        path: issue.path.join("."),
-        message: issue.message,
-        code: issue.code
-      }));
-      response.status(400).json(fieldErrors(errors));
-      return;
-    }
-    try {
-      const competition = await competitionService.findById(competitionId);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-      const view = await upsertOfficialScore(database, parsed.data);
-      response.status(200).json(view);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const competitionId = String(request.params.id);
-    try {
-      const competition = await competitionService.findById(competitionId);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-      const officialScores = await listOfficialScoresForCompetition(database, competition._id);
-      response.status(200).json({ official_scores: officialScores });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/admin/competitions/:id/teams", requireMongo, async (request, response, next) => {
-    const competitionService = request.app.locals.competitionService;
-    const database = request.app.locals.mongoDatabase as MongoDatabase;
-    const competitionId = String(request.params.id);
-    try {
-      const competition = await competitionService.findById(competitionId);
-      if (!competition) {
-        response.status(404).json(errorResponse("Competition not found"));
-        return;
-      }
-
-      const records = await database.collections.records
-        .find({ competition_id: competition._id })
-        .sort({ match_number: 1, team_number: 1, submitted_at: 1 })
-        .toArray();
-
-      const profile = await loadProfileForCompetition(profileStoragePath, competition.scoring_profile_name);
-      const rollups = buildTeamRollups(
-        records.map((doc): ScoutRecordForRollup => ({
-          _id: doc._id,
-          match_number: doc.match_number,
-          team_number: doc.team_number,
-          values: doc.values
-        })),
-        profile
-      );
-
-      response.status(200).json({ teams: rollups });
-    } catch (error) {
-      next(error);
-    }
-  });
 
 
   const jsonErrorHandler: ErrorRequestHandler = (error, _request, response, next) => {
