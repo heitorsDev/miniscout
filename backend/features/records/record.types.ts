@@ -1,6 +1,8 @@
 import type { z } from "zod";
 import type { scoutRecordInputSchema } from "./record.schema";
 import type { ScoutRecordDocument } from "../../shared/db";
+import type { EstimatedScore } from "../scoring/scoring";
+import type { GroupAggregation } from "../scoring/aggregation";
 
 export type ScoutRecordInput = z.infer<typeof scoutRecordInputSchema>;
 
@@ -33,8 +35,8 @@ export type ScoutGroupDetail = {
   team_number: string;
   record_count: number;
   multi_scouted: boolean;
-  records: Array<ScoutRecordView & { estimated_score: unknown }>;
-  aggregated: unknown;
+  records: Array<ScoutRecordView & { estimated_score: EstimatedScore }>;
+  aggregated: GroupAggregation;
 };
 
 export type ExistingScoutsResult = {
