@@ -172,4 +172,47 @@ describe("POST /api/admin/export/records.csv", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: "Competition not found" });
   });
+
+  it("injects OfficialScore red_score and blue_score columns when a map is supplied", async () => {
+    const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-export-scores-"));
+    temporaryDirectories.push(profileStoragePath);
+    const scoringProfilePath = path.join(profileStoragePath, "export-profile.json");
+    await writeFile(scoringProfilePath, JSON.stringify(exportProfile), "utf8");
+
+    const app = createApp({
+      profileStoragePath,
+      loadRecordExportData: async () => ({
+        scoringProfilePath,
+        records: [
+          {
+            competition_id: "competition-1",
+            match_number: "Q12",
+            team_number: "254",
+            scouter_name: "Ada",
+            submitted_at: "2026-07-29T12:34:56.000Z",
+            values: { cycles: 4 }
+          },
+          {
+            competition_id: "competition-1",
+            match_number: "Q13",
+            team_number: "254",
+            scouter_name: "Ada",
+            submitted_at: "2026-07-29T12:35:56.000Z",
+            values: { cycles: 7 }
+          }
+        ],
+        officialScoresByMatch: new Map([
+          ["Q12", { red_score: 110, blue_score: 95 }]
+        ])
+      })
+    });
+
+    const response = await request(app).post("/api/admin/export/records.csv");
+
+    expect(response.status).toBe(200);
+    const lines = response.text.trimEnd().split("\r\n");
+    expect(lines[0]).toBe("competition_id,match_number,team_number,scouter_name,submitted_at,red_score,blue_score,cycles,notes,leave,estimated_score.total");
+    expect(lines[1]).toBe("competition-1,Q12,254,Ada,2026-07-29T12:34:56.000Z,110,95,4,,,8");
+    expect(lines[2]).toBe("competition-1,Q13,254,Ada,2026-07-29T12:35:56.000Z,,,7,,,14");
+  });
 });

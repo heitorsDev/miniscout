@@ -12,9 +12,17 @@ export type ScoutRecordForExport = {
   values?: unknown;
 };
 
+export type OfficialScoreMapEntry = {
+  red_score: number;
+  blue_score: number;
+};
+
+export type OfficialScoreMap = ReadonlyMap<string, OfficialScoreMapEntry>;
+
 export type RecordExportData = {
   scoringProfilePath: string;
   records: readonly ScoutRecordForExport[];
+  officialScoresByMatch?: OfficialScoreMap;
 };
 
 export type RecordExportDataLoader = () => Promise<RecordExportData | null>;
@@ -85,7 +93,8 @@ function csvRow(values: readonly string[]): string {
 
 export function createRecordsCsv(
   records: readonly ScoutRecordForExport[],
-  profile: ScoringProfile
+  profile: ScoringProfile,
+  officialScoresByMatch?: OfficialScoreMap
 ): string {
   const header = [
     "competition_id",
@@ -100,14 +109,16 @@ export function createRecordsCsv(
   ];
   const rows = records.map((record) => {
     const values = recordValues(record.values);
+    const matchKey = documentValue(record.match_number);
+    const scores = officialScoresByMatch?.get(matchKey);
     return [
       documentValue(record.competition_id),
-      documentValue(record.match_number),
+      matchKey,
       documentValue(record.team_number),
       documentValue(record.scouter_name),
       documentValue(record.submitted_at),
-      "",
-      "",
+      scores ? String(scores.red_score) : "",
+      scores ? String(scores.blue_score) : "",
       ...profile.fields.map((field) => rawFieldValue(values[field.key])),
       String(calculateEstimatedScore(values, profile).total)
     ];

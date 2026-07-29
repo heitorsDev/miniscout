@@ -524,7 +524,7 @@ export function createApp(options: AppOptions = {}): Express {
       }
 
       const profile = await loadScoringProfile(profileStoragePath, exportData.scoringProfilePath);
-      const csv = createRecordsCsv(exportData.records, profile);
+      const csv = createRecordsCsv(exportData.records, profile, exportData.officialScoresByMatch);
       response
         .status(200)
         .set("Content-Disposition", "attachment; filename=\"records.csv\"")
