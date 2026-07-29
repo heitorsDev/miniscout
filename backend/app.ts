@@ -27,6 +27,7 @@ import {
 } from "./scouter";
 import {
   createScoutRecord,
+  deleteScoutRecord,
   findExistingScouts,
   getGroupForCompetitionAdmin,
   listGroupsForCompetitionAdmin,
@@ -255,6 +256,21 @@ export function createApp(options: AppOptions = {}): Express {
       const result = await findExistingScouts(database, competition._id, String(request.query.match_number ?? ""), String(request.query.team_number ?? ""), request.cookies?.[SCOUTER_COOKIE]);
       response.status(200).json(result);
     } catch (error) { next(error); }
+  });
+
+  app.delete("/api/admin/records/:id", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const recordId = String(request.params.id);
+    try {
+      const deleted = await deleteScoutRecord(database, recordId);
+      if (!deleted) {
+        response.status(404).json(errorResponse("ScoutRecord not found"));
+        return;
+      }
+      response.status(204).end();
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {

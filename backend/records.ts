@@ -109,3 +109,11 @@ export async function findExistingScouts(
     scouter_names: [...new Set(docs.filter((doc) => doc.scouter_cookie_id !== excludedCookieId).map((doc) => doc.scouter_name))]
   };
 }
+
+export async function deleteScoutRecord(
+  database: MongoDatabase,
+  recordId: string
+): Promise<boolean> {
+  const result = await database.collections.records.deleteOne({ _id: recordId });
+  return result.deletedCount === 1;
+}
