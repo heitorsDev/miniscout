@@ -247,7 +247,7 @@ export function createApp(options: AppOptions = {}): Express {
     try {
       const competition = await findCompetitionByQrToken(database, String(request.params.token));
       if (!competition) return void response.status(404).json(errorResponse("Competition not found"));
-      const result = await findExistingScouts(database, competition._id, String(request.query.match_number ?? ""), String(request.query.team_number ?? ""));
+      const result = await findExistingScouts(database, competition._id, String(request.query.match_number ?? ""), String(request.query.team_number ?? ""), request.cookies?.[SCOUTER_COOKIE]);
       response.status(200).json(result);
     } catch (error) { next(error); }
   });

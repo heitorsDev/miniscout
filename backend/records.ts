@@ -100,8 +100,12 @@ export async function findExistingScouts(
   database: MongoDatabase,
   competitionId: string,
   matchNumber: string,
-  teamNumber: string
+  teamNumber: string,
+  excludedCookieId?: string
 ) {
   const docs = await database.collections.records.find({ competition_id: competitionId, match_number: matchNumber, team_number: teamNumber }).toArray();
-  return { count: docs.length, scouter_names: [...new Set(docs.map((doc) => doc.scouter_name))] };
+  return {
+    count: docs.length,
+    scouter_names: [...new Set(docs.filter((doc) => doc.scouter_cookie_id !== excludedCookieId).map((doc) => doc.scouter_name))]
+  };
 }
