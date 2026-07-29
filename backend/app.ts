@@ -45,10 +45,11 @@ import {
   type RecordExportDataLoader
 } from "./record-export";
 import {
-  InMemoryMatchBroadcaster,
+  createInMemoryBroadcaster,
   type MatchBroadcaster
-} from "./match-broadcaster";
-import { openMatchNumberStream } from "./match-broadcast-stream";
+} from "./features/broadcast/broadcaster";
+import { createBroadcastController } from "./features/broadcast/broadcast.controller";
+import { createBroadcastRoutes } from "./features/broadcast/broadcast.routes";
 import { buildTeamRollups, type ScoutRecordForRollup } from "./features/teams/team-rollup";
 
 export type AppOptions = {
@@ -85,21 +86,6 @@ function fieldErrors(errors: Array<{ path: string; message: string; code: string
   };
 }
 
-const matchNumberBodySchema = z.object({
-  value: z.number({ invalid_type_error: "must be a number" })
-    .int("must be an integer")
-    .positive("must be a positive integer")
-}).strict();
-
-function matchValidationResponse(
-  errors: Array<{ path: string; message: string; code: string }>
-) {
-  return {
-    error: "Invalid match number",
-    errors
-  };
-}
-
 async function loadProfileForCompetition(
   profileStoragePath: string,
   scoringProfileName: string
@@ -125,7 +111,7 @@ export function createApp(options: AppOptions = {}): Express {
     mongoUrl: options.mongoUrl ?? process.env.MONGO_URL ?? "mongodb://127.0.0.1:27017/miniscout",
     profileStoragePath
   });
-  const matchBroadcaster = options.matchBroadcaster ?? new InMemoryMatchBroadcaster();
+  const matchBroadcaster = options.matchBroadcaster ?? createInMemoryBroadcaster();
   const app = express();
   app.locals.mongoDatabase = options.mongoDatabase;
 
@@ -139,6 +125,9 @@ export function createApp(options: AppOptions = {}): Express {
   const profileRepository = createFileProfileRepository(profileStoragePath);
   const profileController = createProfileController(profileRepository);
   app.use("/api", createProfileRoutes(profileController));
+
+  const broadcastController = createBroadcastController(matchBroadcaster);
+  app.use("/api", createBroadcastRoutes(broadcastController, matchBroadcaster));
 
   if (options.mongoDatabase) {
     const competitionRepository = createMongoCompetitionRepository(options.mongoDatabase);
@@ -286,89 +275,6 @@ export function createApp(options: AppOptions = {}): Express {
         .set("Content-Disposition", "attachment; filename=\"records.csv\"")
         .type("text/csv")
         .send(csv);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/scouter/competition/:competitionId", async (request, response, next) => {
-    const competitionId = request.params.competitionId;
-    try {
-      const currentMatchNumber = await matchBroadcaster.getCurrent(competitionId);
-      response.status(200).json({ competition_id: competitionId, current_match_number: currentMatchNumber });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.put("/api/scouter/competition/:competitionId/match-number", async (request, response, next) => {
-    const competitionId = request.params.competitionId;
-    const result = matchNumberBodySchema.safeParse(request.body);
-    if (!result.success) {
-      response.status(400).json(matchValidationResponse(
-        result.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-          code: issue.code
-        }))
-      ));
-      return;
-    }
-
-    try {
-      const { value } = result.data;
-      const { updatedAt } = await matchBroadcaster.setCurrent(competitionId, value);
-      response.status(200).json({
-        competition_id: competitionId,
-        current_match_number: value,
-        updated_at: updatedAt
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/scouter/competition/:competitionId/stream", (request, response) => {
-    const competitionId = request.params.competitionId;
-    openMatchNumberStream(matchBroadcaster, competitionId, response);
-  });
-
-  app.put("/api/admin/competition/:competitionId/match-number", async (request, response, next) => {
-    const competitionId = request.params.competitionId;
-    const result = matchNumberBodySchema.safeParse(request.body);
-    if (!result.success) {
-      response.status(400).json(matchValidationResponse(
-        result.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message,
-          code: issue.code
-        }))
-      ));
-      return;
-    }
-
-    try {
-      const { value } = result.data;
-      const { updatedAt } = await matchBroadcaster.setCurrent(competitionId, value);
-      response.status(200).json({
-        competition_id: competitionId,
-        current_match_number: value,
-        updated_at: updatedAt
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.delete("/api/admin/competition/:competitionId/match-number", async (request, response, next) => {
-    const competitionId = request.params.competitionId;
-    try {
-      const { updatedAt } = await matchBroadcaster.clearCurrent(competitionId);
-      response.status(200).json({
-        competition_id: competitionId,
-        current_match_number: null,
-        updated_at: updatedAt
-      });
     } catch (error) {
       next(error);
     }

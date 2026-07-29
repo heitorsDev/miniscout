@@ -1,6 +1,7 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
-import { createApp } from "./app";
+import { createApp } from "../../app";
+import { createInMemoryBroadcaster, type MatchBroadcaster } from "./broadcaster";
 
 describe("scouter match broadcast API", () => {
   it("reports no current match number before any broadcast", async () => {
@@ -118,5 +119,26 @@ describe("admin match broadcast API", () => {
     expect(response.body.errors).toEqual(
       expect.arrayContaining([expect.objectContaining({ path: "value" })])
     );
+  });
+});
+
+describe("InMemoryBroadcaster", () => {
+  it("stores current match number per competition and exposes subscribe", async () => {
+    const broadcaster: MatchBroadcaster = createInMemoryBroadcaster();
+    expect(await broadcaster.getCurrent("c1")).toBeNull();
+
+    const set = await broadcaster.setCurrent("c1", 4);
+    expect(set.value).toBe(4);
+    expect(await broadcaster.getCurrent("c1")).toBe(4);
+
+    const events: string[] = [];
+    const unsubscribe = broadcaster.subscribe("c1", (event) => {
+      events.push(event.type);
+    });
+    await broadcaster.setCurrent("c1", 5);
+    await broadcaster.clearCurrent("c1");
+    unsubscribe();
+
+    expect(events).toEqual(["updated", "cleared"]);
   });
 });

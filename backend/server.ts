@@ -1,17 +1,18 @@
 import { startMongoDatabase } from "./shared/db";
 import { createApp } from "./app";
-import { MongoMatchBroadcaster } from "./match-broadcaster";
+import { loadMongoBroadcaster } from "./features/broadcast/broadcast.repository";
+import type { MatchBroadcaster } from "./features/broadcast/broadcaster";
 
 const mongoUrl = process.env.MONGO_URL ?? "mongodb://127.0.0.1:27017/miniscout";
 const port = Number(process.env.PORT ?? 3000);
 
-async function buildBroadcaster(database: Awaited<ReturnType<typeof startMongoDatabase>>): Promise<MongoMatchBroadcaster> {
+async function buildBroadcaster(database: Awaited<ReturnType<typeof startMongoDatabase>>): Promise<MatchBroadcaster> {
   const collection = database.db.collection<{
     _id: string;
     current_match_number: number | null;
     updated_at: string;
   }>("competitions");
-  return await MongoMatchBroadcaster.load(collection);
+  return await loadMongoBroadcaster(collection);
 }
 
 async function main(): Promise<void> {

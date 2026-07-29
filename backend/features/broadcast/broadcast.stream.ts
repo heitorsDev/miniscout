@@ -1,9 +1,5 @@
 import type { Response } from "express";
-import {
-  type CompetitionId,
-  type MatchBroadcaster,
-  type MatchEvent
-} from "./match-broadcaster";
+import type { CompetitionId, MatchBroadcaster, MatchEvent } from "./broadcaster";
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 

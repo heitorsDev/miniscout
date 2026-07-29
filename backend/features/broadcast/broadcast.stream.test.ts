@@ -1,8 +1,8 @@
 import http, { type IncomingMessage } from "node:http";
 import { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "./app";
-import { InMemoryMatchBroadcaster, type MatchBroadcaster } from "./match-broadcaster";
+import { createApp } from "../../app";
+import { createInMemoryBroadcaster, type MatchBroadcaster } from "./broadcaster";
 
 type ReceivedEvent = {
   event: string;
@@ -85,7 +85,7 @@ describe("scouter match broadcast SSE stream", () => {
   let broadcaster: MatchBroadcaster;
 
   beforeEach(() => {
-    broadcaster = new InMemoryMatchBroadcaster();
+    broadcaster = createInMemoryBroadcaster();
   });
 
   afterEach(async () => {
