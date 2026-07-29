@@ -334,3 +334,146 @@ describe("calculateEstimatedScore note fields", () => {
     });
   });
 });
+
+describe("calculateEstimatedScore grouping", () => {
+  it("returns every declared phase for an empty profile", () => {
+    expect(calculateEstimatedScore({}, profile([], ["auto", "teleop", "endgame"]))).toEqual({
+      total: 0,
+      by_phase: { auto: 0, teleop: 0, endgame: 0 },
+      by_target: {}
+    });
+  });
+
+  it("adds multiple fields in one phase", () => {
+    expect(calculateEstimatedScore(
+      { cycles: 3, speed: 4 },
+      profile([counter(), numberField()], ["teleop"])
+    )).toEqual({
+      total: 12,
+      by_phase: { teleop: 12 },
+      by_target: { basket: 6, mobility: 6 }
+    });
+  });
+
+  it("separates scores across multiple phases", () => {
+    expect(calculateEstimatedScore(
+      { leave: true, cycles: 3, ascent: "high" },
+      profile([booleanField(), counter(), enumField()], ["auto", "teleop", "endgame"])
+    )).toEqual({
+      total: 17,
+      by_phase: { auto: 3, teleop: 6, endgame: 8 },
+      by_target: { mobility: 3, basket: 6, climb: 8 }
+    });
+  });
+
+  it("includes an explicit match-level field in total only", () => {
+    expect(calculateEstimatedScore(
+      { bonus: 2 },
+      profile([numberField({ key: "bonus", phase: null, scoring_target: null, points_per_unit: 5 })])
+    )).toEqual({
+      total: 10,
+      by_phase: { teleop: 0 },
+      by_target: {}
+    });
+  });
+
+  it("includes a field without phase in total only", () => {
+    expect(calculateEstimatedScore(
+      { bonus: true },
+      profile([booleanField({ key: "bonus", phase: undefined, scoring_target: "bonus" })])
+    )).toEqual({
+      total: 3,
+      by_phase: { teleop: 0 },
+      by_target: { bonus: 3 }
+    });
+  });
+
+  it("groups multiple field types by one scoring target", () => {
+    expect(calculateEstimatedScore(
+      { leave: true, speed: 4 },
+      profile([
+        booleanField({ scoring_target: "mobility" }),
+        numberField({ scoring_target: "mobility" })
+      ], ["auto", "teleop"])
+    )).toEqual({
+      total: 9,
+      by_phase: { auto: 3, teleop: 6 },
+      by_target: { mobility: 9 }
+    });
+  });
+
+  it("groups one target across multiple phases", () => {
+    expect(calculateEstimatedScore(
+      { auto_cycles: 2, teleop_cycles: 3 },
+      profile([
+        counter({ key: "auto_cycles", phase: "auto", scoring_target: "basket", points_per_unit: 4 }),
+        counter({ key: "teleop_cycles", phase: "teleop", scoring_target: "basket", points_per_unit: 2 })
+      ], ["auto", "teleop"])
+    )).toEqual({
+      total: 14,
+      by_phase: { auto: 8, teleop: 6 },
+      by_target: { basket: 14 }
+    });
+  });
+
+  it("keeps different scoring targets separate", () => {
+    expect(calculateEstimatedScore(
+      { cycles: 2, ascent: "low" },
+      profile([counter(), enumField()], ["teleop", "endgame"])
+    )).toEqual({
+      total: 7,
+      by_phase: { teleop: 4, endgame: 3 },
+      by_target: { basket: 4, climb: 3 }
+    });
+  });
+
+  it("does not create groups for null or missing targets", () => {
+    expect(calculateEstimatedScore(
+      { first: 2, second: 3 },
+      profile([
+        counter({ key: "first", scoring_target: null }),
+        counter({ key: "second", scoring_target: undefined })
+      ])
+    )).toEqual({
+      total: 10,
+      by_phase: { teleop: 10 },
+      by_target: {}
+    });
+  });
+
+  it("ignores record values absent from the profile", () => {
+    expect(calculateEstimatedScore(
+      { cycles: 2, orphaned_field: 1000 },
+      profile([counter()])
+    )).toEqual({
+      total: 4,
+      by_phase: { teleop: 4 },
+      by_target: { basket: 4 }
+    });
+  });
+
+  it("retains a zero-valued target group", () => {
+    expect(calculateEstimatedScore(
+      { cycles: 0 },
+      profile([counter({ scoring_target: "basket" })])
+    )).toEqual({
+      total: 0,
+      by_phase: { teleop: 0 },
+      by_target: { basket: 0 }
+    });
+  });
+
+  it("combines positive and negative fields", () => {
+    expect(calculateEstimatedScore(
+      { scored: 4, penalties: 2 },
+      profile([
+        counter({ key: "scored", scoring_target: "net", points_per_unit: 3 }),
+        numberField({ key: "penalties", scoring_target: "net", points_per_unit: -5 })
+      ])
+    )).toEqual({
+      total: 2,
+      by_phase: { teleop: 2 },
+      by_target: { net: 2 }
+    });
+  });
+});
