@@ -29,6 +29,8 @@ import { createMongoOfficialScoreRepository } from "./features/official-scores/o
 import { createOfficialScoreService } from "./features/official-scores/official-score.service";
 import { createOfficialScoreController } from "./features/official-scores/official-score.controller";
 import { createOfficialScoreRoutes } from "./features/official-scores/official-score.routes";
+import { createMongoTeamRepository } from "./features/teams/team.repository";
+import { createTeamService } from "./features/teams/team.service";
 import { createTeamsController } from "./features/teams/team.controller";
 import { createTeamsRoutes } from "./features/teams/team.routes";
 
@@ -135,11 +137,13 @@ export function createApp(options: AppOptions = {}): Express {
     });
     app.use("/api", createOfficialScoreRoutes(officialScoreController, requireMongo));
 
-    const teamsController = createTeamsController({
+    const teamRepository = createMongoTeamRepository(options.mongoDatabase);
+    const teamService = createTeamService({
       competitionService,
-      database: options.mongoDatabase,
+      teamRepository,
       profileStoragePath
     });
+    const teamsController = createTeamsController({ teamService });
     app.use("/api", createTeamsRoutes(teamsController, requireMongo));
   }
 
