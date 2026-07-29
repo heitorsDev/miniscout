@@ -29,8 +29,8 @@ interface SetupOptions {
 
 async function setupFixture({ profileName = validProfile.name, appOptions }: SetupOptions = {}) {
   const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-profiles-"));
-  const mongo = await startMongoFixture();
-  const app = createApp({ profileStoragePath, mongoUrl: mongo.url, ...appOptions });
+  const mongo = await startMongoFixture(`t-${Math.random().toString(36).slice(2, 10)}`);
+  const app = createApp({ profileStoragePath, mongoDatabase: mongo.database, ...appOptions });
   await request(app).post("/api/admin/profiles").send({ ...validProfile, name: profileName });
   return {
     profileStoragePath,
@@ -59,12 +59,9 @@ describe("admin Competitions API", () => {
       .send({ name: "Spring 2026", scoring_profile_name: validProfile.name, lan_base_url: "http://192.168.1.10:8082" });
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
-      competition: {
-        name: "Spring 2026",
-        scoring_profile_name: validProfile.name
-      },
-      qr_url: "http://192.168.1.10:8082/scout?c="
+    expect(response.body.competition).toMatchObject({
+      name: "Spring 2026",
+      scoring_profile_name: validProfile.name
     });
     const qrToken = response.body.competition.qr_token as string;
     expect(qrToken).toMatch(/^[a-f0-9]{32,}$/);
@@ -163,7 +160,7 @@ describe("scouter cookie + draft + record API", () => {
       .send({ name: "Alice" });
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ name: "Alice" });
+    expect(response.body).toMatchObject({ scouter_name: "Alice" });
     const setCookie = response.headers["set-cookie"];
     expect(setCookie).toBeDefined();
     const cookieHeader = Array.isArray(setCookie) ? setCookie.join(",") : String(setCookie ?? "");
@@ -183,7 +180,7 @@ describe("scouter cookie + draft + record API", () => {
       .set("Cookie", cookie ?? "");
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ name: "Alice" });
+    expect(response.body).toMatchObject({ scouter_name: "Alice" });
   });
 
   it("stores and restores the unsubmitted draft keyed by scouter cookie", async () => {

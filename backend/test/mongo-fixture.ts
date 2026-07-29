@@ -1,22 +1,21 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { MongoClient } from "mongodb";
+import { startMongoDatabase, type MongoDatabase } from "../db";
 
 export type MongoFixture = {
   url: string;
-  client: MongoClient;
+  database: MongoDatabase;
   close: () => Promise<void>;
 };
 
-export async function startMongoFixture(): Promise<MongoFixture> {
+export async function startMongoFixture(databaseName?: string): Promise<MongoFixture> {
   const server = await MongoMemoryServer.create();
   const url = server.getUri();
-  const client = new MongoClient(url);
-  await client.connect();
+  const database = await startMongoDatabase(url, databaseName);
   return {
     url,
-    client,
+    database,
     close: async () => {
-      await client.close();
+      await database.close();
       await server.stop();
     }
   };
