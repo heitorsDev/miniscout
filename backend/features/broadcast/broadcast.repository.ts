@@ -1,6 +1,6 @@
-import { EventEmitter } from "node:events";
 import type { Collection } from "mongodb";
-import type { CompetitionId, MatchBroadcaster, MatchEvent, MatchEventHandler, Unsubscribe } from "./broadcaster";
+import { BaseBroadcaster } from "./broadcaster";
+import type { CompetitionId, MatchBroadcaster } from "./broadcaster";
 
 type CompetitionDocument = {
   _id: CompetitionId;
@@ -8,34 +8,9 @@ type CompetitionDocument = {
   updated_at: string;
 };
 
-abstract class MongoBackedBroadcaster implements MatchBroadcaster {
-  protected readonly emitter = new EventEmitter();
+export class MongoBroadcaster extends BaseBroadcaster {
   protected readonly entries = new Map<CompetitionId, { value: number | null; updatedAt: string }>();
 
-  constructor() {
-    this.emitter.setMaxListeners(0);
-  }
-
-  abstract getCurrent(competitionId: CompetitionId): Promise<number | null>;
-  abstract setCurrent(
-    competitionId: CompetitionId,
-    value: number
-  ): Promise<{ value: number; updatedAt: string }>;
-  abstract clearCurrent(competitionId: CompetitionId): Promise<{ updatedAt: string }>;
-
-  subscribe(competitionId: CompetitionId, handler: MatchEventHandler): Unsubscribe {
-    this.emitter.on(competitionId, handler);
-    return () => {
-      this.emitter.off(competitionId, handler);
-    };
-  }
-
-  protected emit(event: MatchEvent): void {
-    this.emitter.emit(event.competitionId, event);
-  }
-}
-
-export class MongoBroadcaster extends MongoBackedBroadcaster {
   private constructor(private readonly collection: Collection<CompetitionDocument>) {
     super();
   }

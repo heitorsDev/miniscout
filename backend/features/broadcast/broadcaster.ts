@@ -16,7 +16,7 @@ export type MatchBroadcaster = {
   subscribe(competitionId: CompetitionId, handler: MatchEventHandler): Unsubscribe;
 };
 
-abstract class BaseBroadcaster implements MatchBroadcaster {
+export abstract class BaseBroadcaster implements MatchBroadcaster {
   protected readonly emitter = new EventEmitter();
 
   constructor() {
