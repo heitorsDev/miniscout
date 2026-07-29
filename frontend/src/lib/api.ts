@@ -1,7 +1,8 @@
 import type {
   Competition,
   DraftValue,
-  ScoutRecord,
+  ScoutGroup,
+  ScoutGroupSummary,
   ScoringProfile,
   ScouterDraft
 } from "./types";
@@ -60,8 +61,11 @@ export const api = {
   }> {
     return request("/api/admin/competitions", { method: "POST", body: JSON.stringify(input) });
   },
-  listAdminRecords(competitionId: string): Promise<{ records: ScoutRecord[] }> {
+  listAdminGroups(competitionId: string): Promise<{ groups: ScoutGroupSummary[] }> {
     return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/records`);
+  },
+  getAdminGroup(competitionId: string, matchNumber: string, teamNumber: string): Promise<{ group: ScoutGroup }> {
+    return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/groups/${encodeURIComponent(matchNumber)}/${encodeURIComponent(teamNumber)}`);
   },
   lookupCompetition(token: string): Promise<CompetitionLookupResponse> {
     return request(`/api/competitions/${encodeURIComponent(token)}`);
@@ -97,6 +101,10 @@ export const api = {
       }
       return parseResponse<{ draft: ScouterDraft | null }>(response);
     });
+  },
+  existingScouts(token: string, matchNumber: string, teamNumber: string): Promise<{ count: number; scouter_names: string[] }> {
+    const query = new URLSearchParams({ match_number: matchNumber, team_number: teamNumber });
+    return request(`/api/competitions/${encodeURIComponent(token)}/existing-scouts?${query}`);
   },
   submitRecord(token: string, payload: { scouter_name: string; match_number: string; team_number: string; values: DraftValue }): Promise<{ record_id: string }> {
     return request(`/api/competitions/${encodeURIComponent(token)}/records`, {
