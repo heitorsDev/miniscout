@@ -33,6 +33,11 @@ import {
   scoutRecordInputSchema
 } from "./records";
 import { createGroupsCsv } from "./group-export";
+import {
+  listOfficialScoresForCompetition,
+  officialScoreUpsertSchema,
+  upsertOfficialScore
+} from "./official-scores";
 import { createMongoRecordExportDataLoader } from "./mongo-record-export";
 import {
   createRecordsCsv,
@@ -250,6 +255,51 @@ export function createApp(options: AppOptions = {}): Express {
       const result = await findExistingScouts(database, competition._id, String(request.query.match_number ?? ""), String(request.query.team_number ?? ""), request.cookies?.[SCOUTER_COOKIE]);
       response.status(200).json(result);
     } catch (error) { next(error); }
+  });
+
+  app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const competitionId = String(request.params.id);
+    const parsed = officialScoreUpsertSchema.safeParse({
+      ...(request.body ?? {}),
+      competition_id: competitionId
+    });
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+        code: issue.code
+      }));
+      response.status(400).json(fieldErrors(errors));
+      return;
+    }
+    try {
+      const competition = await findCompetitionById(database, competitionId);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const view = await upsertOfficialScore(database, parsed.data);
+      response.status(200).json(view);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
+    const database = request.app.locals.mongoDatabase as MongoDatabase;
+    const competitionId = String(request.params.id);
+    try {
+      const competition = await findCompetitionById(database, competitionId);
+      if (!competition) {
+        response.status(404).json(errorResponse("Competition not found"));
+        return;
+      }
+      const officialScores = await listOfficialScoresForCompetition(database, competition._id);
+      response.status(200).json({ official_scores: officialScores });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get("/api/competitions/:token", requireMongo, async (request, response, next) => {
