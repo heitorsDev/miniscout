@@ -22,6 +22,11 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/healthz || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   frontend:
     build:
@@ -31,8 +36,10 @@ services:
   reverse-proxy:
     image: caddy:2.8-alpine
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     ports:
       - "127.0.0.1:${ADMIN_PORT:-8081}:80"
     volumes:
