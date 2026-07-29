@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  deleteOfficialScoreForMatch,
-  listOfficialScoresForCompetition,
-  newOfficialScoreId,
-  upsertOfficialScore,
-  type OfficialScoreView
-} from "./official-scores";
-import { startMongoFixture, type MongoFixture } from "./test/mongo-fixture";
+import { createMongoOfficialScoreRepository } from "./official-score.repository";
+import { createOfficialScoreService } from "./official-score.service";
+import { newOfficialScoreId } from "../../shared/db";
+import { startMongoFixture, type MongoFixture } from "../../test/mongo-fixture";
+import type { OfficialScoreView } from "./official-score.types";
 
-describe("official-scores repository", () => {
+describe("official-scores service", () => {
   let mongo: MongoFixture;
   let cleanup: Array<() => Promise<void>>;
+  let service: ReturnType<typeof createOfficialScoreService>;
 
   beforeEach(async () => {
     mongo = await startMongoFixture(`offscore-${Math.random().toString(36).slice(2, 10)}`);
     cleanup = [mongo.close];
+    const repository = createMongoOfficialScoreRepository(mongo.database);
+    service = createOfficialScoreService(repository);
   });
 
   afterEach(async () => {
@@ -23,7 +23,7 @@ describe("official-scores repository", () => {
 
   it("upserts an OfficialScore for a match and exposes it via the competition listing", async () => {
     const competitionId = "cmp_test";
-    const created = await upsertOfficialScore(mongo.database, {
+    const created = await service.upsertScore({
       competition_id: competitionId,
       match_number: "12",
       red_score: 110,
@@ -36,7 +36,7 @@ describe("official-scores repository", () => {
     expect(created.blue_score).toBe(95);
     expect(created._id.startsWith("off_")).toBe(true);
 
-    const all = await listOfficialScoresForCompetition(mongo.database, competitionId);
+    const all = await service.listScores(competitionId);
     expect(all).toEqual<OfficialScoreView[]>([
       {
         _id: created._id,
@@ -51,13 +51,13 @@ describe("official-scores repository", () => {
 
   it("upserts replace an existing OfficialScore for the same (competition, match)", async () => {
     const competitionId = "cmp_test";
-    const first = await upsertOfficialScore(mongo.database, {
+    const first = await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q1",
       red_score: 30,
       blue_score: 40
     });
-    const second = await upsertOfficialScore(mongo.database, {
+    const second = await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q1",
       red_score: 99,
@@ -67,52 +67,52 @@ describe("official-scores repository", () => {
     expect(second._id).toBe(first._id);
     expect(second.red_score).toBe(99);
 
-    const all = await listOfficialScoresForCompetition(mongo.database, competitionId);
+    const all = await service.listScores(competitionId);
     expect(all).toHaveLength(1);
     expect(all[0]).toMatchObject({ red_score: 99, blue_score: 0 });
   });
 
   it("lists OfficialScores sorted by match_number then updated_at", async () => {
     const competitionId = "cmp_test";
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q3",
       red_score: 10,
       blue_score: 20
     });
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q1",
       red_score: 30,
       blue_score: 40
     });
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q2",
       red_score: 50,
       blue_score: 60
     });
 
-    const all = await listOfficialScoresForCompetition(mongo.database, competitionId);
+    const all = await service.listScores(competitionId);
     expect(all.map((row) => row.match_number)).toEqual(["Q1", "Q2", "Q3"]);
   });
 
   it("isolates OfficialScores by competition_id", async () => {
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: "cmp_a",
       match_number: "Q1",
       red_score: 1,
       blue_score: 2
     });
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: "cmp_b",
       match_number: "Q1",
       red_score: 3,
       blue_score: 4
     });
 
-    const a = await listOfficialScoresForCompetition(mongo.database, "cmp_a");
-    const b = await listOfficialScoresForCompetition(mongo.database, "cmp_b");
+    const a = await service.listScores("cmp_a");
+    const b = await service.listScores("cmp_b");
 
     expect(a).toHaveLength(1);
     expect(b).toHaveLength(1);
@@ -122,20 +122,21 @@ describe("official-scores repository", () => {
 
   it("deletes the OfficialScore for a match and reports whether one was removed", async () => {
     const competitionId = "cmp_test";
-    await upsertOfficialScore(mongo.database, {
+    await service.upsertScore({
       competition_id: competitionId,
       match_number: "Q5",
       red_score: 7,
       blue_score: 11
     });
 
-    const removed = await deleteOfficialScoreForMatch(mongo.database, competitionId, "Q5");
+    const repository = createMongoOfficialScoreRepository(mongo.database);
+    const removed = await repository.deleteByMatch(competitionId, "Q5");
     expect(removed).toBe(true);
 
-    const all = await listOfficialScoresForCompetition(mongo.database, competitionId);
+    const all = await service.listScores(competitionId);
     expect(all).toHaveLength(0);
 
-    const removedAgain = await deleteOfficialScoreForMatch(mongo.database, competitionId, "Q5");
+    const removedAgain = await repository.deleteByMatch(competitionId, "Q5");
     expect(removedAgain).toBe(false);
   });
 

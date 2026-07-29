@@ -31,11 +31,10 @@ import { createRecordService } from "./features/records/record.service";
 import { createRecordController } from "./features/records/record.controller";
 import { createRecordRoutes } from "./features/records/record.routes";
 import { createGroupsCsv } from "./group-export";
-import {
-  listOfficialScoresForCompetition,
-  officialScoreUpsertSchema,
-  upsertOfficialScore
-} from "./official-scores";
+import { createMongoOfficialScoreRepository } from "./features/official-scores/official-score.repository";
+import { createOfficialScoreService } from "./features/official-scores/official-score.service";
+import { createOfficialScoreController } from "./features/official-scores/official-score.controller";
+import { createOfficialScoreRoutes } from "./features/official-scores/official-score.routes";
 import { createMongoRecordExportDataLoader } from "./mongo-record-export";
 import {
   createRecordsCsv,
@@ -159,6 +158,14 @@ export function createApp(options: AppOptions = {}): Express {
     const scouterService = createScouterService(scouterRepository);
     const scouterController = createScouterController({ scouterService, competitionService });
     app.use("/api", createScouterRoutes(scouterController, requireMongo));
+
+    const officialScoreRepository = createMongoOfficialScoreRepository(options.mongoDatabase);
+    const officialScoreService = createOfficialScoreService(officialScoreRepository);
+    const officialScoreController = createOfficialScoreController({
+      service: officialScoreService,
+      competitionService
+    });
+    app.use("/api", createOfficialScoreRoutes(officialScoreController, requireMongo));
   }
 
   app.put("/api/admin/competitions/:id/official-scores", requireMongo, async (request, response, next) => {
