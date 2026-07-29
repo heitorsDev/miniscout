@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node", "vitest/globals", "vite/client"]
+  },
+  "include": ["backend/**/*.ts", "frontend/**/*.ts", "frontend/**/*.tsx", "e2e/**/*.ts", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

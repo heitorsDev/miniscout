@@ -1,0 +1,22 @@
+FROM node:20-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY backend ./backend
+COPY tsconfig.json ./
+RUN npm run build:backend
+
+FROM node:20-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PROFILE_STORAGE_PATH=/data/profiles
+COPY package.json package-lock.json ./
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm ci --omit=dev
+COPY --from=build /app/dist/backend ./dist/backend
+RUN mkdir -p /data/profiles && chown -R node:node /data
+EXPOSE 3000
+ENTRYPOINT ["/bin/sh", "-c", "chown -R node:node \"$PROFILE_STORAGE_PATH\" 2>/dev/null; exec setpriv --reuid=node --regid=node --init-groups \"$@\"", "--"]
+CMD ["node", "dist/backend/server.js"]

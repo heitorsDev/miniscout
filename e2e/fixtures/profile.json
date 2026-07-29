@@ -1,0 +1,28 @@
+{
+  "name": "e2e-profile",
+  "version": "1.0.0",
+  "alliance_size": 2,
+  "phases": ["auto", "teleop"],
+  "fields": [
+    {
+      "key": "leave",
+      "label": "Left starting area",
+      "type": "boolean",
+      "phase": "auto",
+      "points_per_unit": 3
+    },
+    {
+      "key": "cycles",
+      "label": "Cycles",
+      "type": "counter",
+      "phase": "teleop",
+      "points_per_unit": 2
+    },
+    {
+      "key": "notes",
+      "label": "Notes",
+      "type": "note",
+      "phase": null
+    }
+  ]
+}
