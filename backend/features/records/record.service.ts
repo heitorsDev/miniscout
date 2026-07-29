@@ -8,6 +8,7 @@ import type { ScoringProfileInput } from "../scoring/scoring";
 import { aggregateGroup } from "../scoring/aggregation";
 import { calculateEstimatedScore } from "../scoring/scoring";
 import { loadValidatedProfile } from "../profiles/profile.service";
+import type { ScouterService } from "../scouter/scouter.service";
 import type { CompetitionDocument } from "../../shared/db";
 import {
   toScoutRecordView,
@@ -44,11 +45,12 @@ export type RecordService = {
 
 export type RecordServiceDeps = {
   repository: RecordRepository;
+  scouterService: ScouterService;
   profileStoragePath: string;
 };
 
 export function createRecordService(deps: RecordServiceDeps): RecordService {
-  const { repository, profileStoragePath } = deps;
+  const { repository, scouterService, profileStoragePath } = deps;
   const loadProfile = (competition: CompetitionDocument) =>
     loadValidatedProfile(profileStoragePath, competition.scoring_profile_name) as Promise<ScoringProfileInput>;
   return {
@@ -56,7 +58,11 @@ export function createRecordService(deps: RecordServiceDeps): RecordService {
     async createRecord(competitionId, cookieId, input) {
       const doc = buildScoutRecordDocument(competitionId, cookieId, input);
       await repository.insert(doc);
-      return { record_id: doc._id };
+      const scouter = await scouterService.findScouterByCookie(cookieId);
+      return {
+        record_id: doc._id,
+        scouter_name: scouter?.display_name ?? input.scouter_name
+      };
     },
     async deleteRecord(recordId) {
       return repository.deleteById(recordId);

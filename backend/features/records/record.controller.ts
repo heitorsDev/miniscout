@@ -56,7 +56,7 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
         );
         response.status(201).json({
           record_id: record.record_id,
-          scouter_name: parsed.data.scouter_name
+          scouter_name: record.scouter_name
         });
       } catch (error) {
         next(error);

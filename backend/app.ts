@@ -113,19 +113,23 @@ export function createApp(options: AppOptions = {}): Express {
     });
     app.use("/api", createCompetitionRoutes({ controller: competitionController, lookupController: competitionLookupController }, requireMongo));
 
+    const scouterRepository = createMongoScouterRepository(options.mongoDatabase);
+    const scouterService = createScouterService(scouterRepository);
+    const scouterController = createScouterController({ scouterService, competitionService });
+    app.use("/api", createScouterRoutes(scouterController, requireMongo));
+
     const recordRepository = createMongoRecordRepository(options.mongoDatabase);
-    const recordService = createRecordService({ repository: recordRepository, profileStoragePath });
+    const recordService = createRecordService({
+      repository: recordRepository,
+      scouterService,
+      profileStoragePath
+    });
     const recordController = createRecordController({
       recordService,
       competitionService,
       cookieName: SCOUTER_COOKIE
     });
     app.use("/api", createRecordRoutes(recordController, requireMongo));
-
-    const scouterRepository = createMongoScouterRepository(options.mongoDatabase);
-    const scouterService = createScouterService(scouterRepository);
-    const scouterController = createScouterController({ scouterService, competitionService });
-    app.use("/api", createScouterRoutes(scouterController, requireMongo));
 
     const officialScoreRepository = createMongoOfficialScoreRepository(options.mongoDatabase);
     const officialScoreService = createOfficialScoreService(officialScoreRepository);

@@ -17,6 +17,7 @@ export type ScoutRecordView = {
 
 export type CreatedScoutRecord = {
   record_id: string;
+  scouter_name: string;
 };
 
 export type ScoutGroupSummary = {
