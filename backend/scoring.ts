@@ -22,7 +22,7 @@ export type EstimatedScore = {
 
 export type RecordValues = Readonly<Record<string, unknown>>;
 
-function counterScore(value: unknown, pointsPerUnit: number | undefined): number {
+function perUnitScore(value: unknown, pointsPerUnit: number | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return 0;
   }
@@ -32,11 +32,33 @@ function counterScore(value: unknown, pointsPerUnit: number | undefined): number
   return value * pointsPerUnit;
 }
 
-function fieldScore(field: ScoringFieldInput, value: unknown): number {
-  if (field.type === "counter") {
-    return counterScore(value, field.points_per_unit);
+function booleanScore(value: unknown, pointsPerUnit: number | undefined): number {
+  if (value !== true || typeof pointsPerUnit !== "number" || !Number.isFinite(pointsPerUnit)) {
+    return 0;
   }
-  return 0;
+  return pointsPerUnit;
+}
+
+function enumScore(value: unknown, pointsPerOption: Readonly<Record<string, number>> | undefined): number {
+  if (typeof value !== "string" || !pointsPerOption || !Object.hasOwn(pointsPerOption, value)) {
+    return 0;
+  }
+  const score = pointsPerOption[value];
+  return Number.isFinite(score) ? score : 0;
+}
+
+function fieldScore(field: ScoringFieldInput, value: unknown): number {
+  switch (field.type) {
+    case "counter":
+    case "number":
+      return perUnitScore(value, field.points_per_unit);
+    case "boolean":
+      return booleanScore(value, field.points_per_unit);
+    case "enum":
+      return enumScore(value, field.points_per_option);
+    case "note":
+      return 0;
+  }
 }
 
 export function calculateEstimatedScore(
