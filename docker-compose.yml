@@ -34,7 +34,7 @@ services:
       - backend
       - frontend
     ports:
-      - "${ADMIN_BIND_ADDRESS:-127.0.0.1}:${ADMIN_PORT:-8081}:80"
+      - "127.0.0.1:${ADMIN_PORT:-8081}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
 

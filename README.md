@@ -6,7 +6,7 @@
 docker compose up --build
 ```
 
-Admin UI listens on `http://127.0.0.1:8081/admin`. Host bind defaults to loopback only. Override local port without exposing LAN access:
+Admin UI listens on `http://127.0.0.1:8081/admin`. Host bind is loopback only. Override local port without exposing LAN access:
 
 ```sh
 ADMIN_PORT=9090 docker compose up --build
