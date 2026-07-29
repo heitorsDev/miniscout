@@ -41,9 +41,21 @@ services:
       frontend:
         condition: service_started
     ports:
-      - "127.0.0.1:${ADMIN_PORT:-8081}:80"
+      - "127.0.0.1:${ADMIN_PORT:-8083}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+  scouter-proxy:
+    image: caddy:2.8-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    ports:
+      - "${SCOUTER_BIND:-0.0.0.0}:${SCOUTER_PORT:-8084}:80"
+    volumes:
+      - ./Caddyfile.scouter:/etc/caddy/Caddyfile:ro
 
 volumes:
   mongo_data:

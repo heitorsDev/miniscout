@@ -160,3 +160,175 @@ button:hover {
     flex-direction: column;
   }
 }
+
+.admin-nav {
+  width: min(100%, 880px);
+  margin: 0 auto 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-nav .brand {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #1769aa;
+  text-decoration: none;
+}
+
+.admin-nav nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #34495a;
+  background: #ffffff;
+  border: 1px solid #d7dee5;
+}
+
+.nav-tab.active {
+  color: #ffffff;
+  background: #1769aa;
+  border-color: #1769aa;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 0.92rem;
+}
+
+.records-table th,
+.records-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #d7dee5;
+}
+
+.records-table th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #52606b;
+}
+
+.qr-block,
+.records-block {
+  margin: 28px 0;
+  padding: 18px;
+  border: 1px solid #d7dee5;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+
+.scouter-shell {
+  min-height: 100vh;
+  padding: 28px 16px;
+  background: #eef2f5;
+}
+
+.scouter-card,
+.name-card,
+.confirmation-card {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #d7dee5;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgb(30 53 72 / 10%);
+}
+
+.header-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 12px 0 18px;
+}
+
+.field-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 600px) {
+  .field-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.scouter-field {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #d7dee5;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.scouter-field.boolean {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.scouter-field.counter .stepper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.scouter-field.counter .stepper .value {
+  min-width: 2ch;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.scouter-field.counter button,
+.scouter-field.boolean input[type="checkbox"] {
+  width: 44px;
+  height: 44px;
+}
+
+.scouter-field.enum {
+  border: 1px solid #d7dee5;
+}
+
+.scouter-field.enum .enum-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.scouter-field input[type="text"],
+.scouter-field input[type="number"],
+.scouter-field textarea {
+  padding: 8px 10px;
+  border: 1px solid #b7c4ce;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.scouter-field textarea {
+  width: 100%;
+}
+
+.muted {
+  color: #52606b;
+  font-size: 0.85rem;
+}
+
+.confirmation-card {
+  text-align: center;
+}

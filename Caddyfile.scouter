@@ -1,0 +1,15 @@
+:80 {
+  redir / /scout
+  handle /api/* {
+    reverse_proxy backend:3000
+  }
+  handle /assets/* {
+    reverse_proxy frontend:4173
+  }
+  handle /scout* {
+    reverse_proxy frontend:4173
+  }
+  handle {
+    respond "Not found" 404
+  }
+}

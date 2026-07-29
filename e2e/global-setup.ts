@@ -2,25 +2,30 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import type { FullConfig } from "@playwright/test";
 
-const healthUrl = "http://127.0.0.1:8081/api/healthz";
-const readinessTimeoutMs = 60_000;
+const adminHealthUrl = process.env.E2E_ADMIN_HEALTH_URL ?? "http://127.0.0.1:8083/api/healthz";
+const scouterHealthUrl = process.env.E2E_SCOUTER_HEALTH_URL ?? "http://127.0.0.1:8084/api/healthz";
+const readinessTimeoutMs = 90_000;
 const pollIntervalMs = 1_000;
+
+async function probe(url: string): Promise<string | null> {
+  try {
+    const status = execFileSync("curl", ["-s", "-o", "/dev/null", "-w", "%{http_code}", url], {
+      encoding: "utf8",
+      timeout: pollIntervalMs
+    });
+    return status;
+  } catch {
+    return null;
+  }
+}
 
 async function waitForStack(): Promise<void> {
   const deadline = Date.now() + readinessTimeoutMs;
 
   while (Date.now() < deadline) {
-    const remainingMs = deadline - Date.now();
-
-    try {
-      const status = execFileSync("curl", ["-s", "-o", "/dev/null", "-w", "%{http_code}", healthUrl], {
-        encoding: "utf8",
-        timeout: Math.min(pollIntervalMs, remainingMs)
-      });
-      if (status === "200") {
-        return;
-      }
-    } catch {
+    const [admin, scouter] = await Promise.all([probe(adminHealthUrl), probe(scouterHealthUrl)]);
+    if (admin === "200" && scouter === "200") {
+      return;
     }
 
     const delayMs = Math.min(pollIntervalMs, deadline - Date.now());
@@ -29,7 +34,7 @@ async function waitForStack(): Promise<void> {
     }
   }
 
-  throw new Error(`Stack did not become ready at ${healthUrl} within 60 seconds`);
+  throw new Error(`Stack did not become ready at admin/scouter within ${Math.round(readinessTimeoutMs / 1000)} seconds`);
 }
 
 export default async function globalSetup(_config: FullConfig): Promise<() => Promise<void>> {
