@@ -34,6 +34,8 @@ export function AdminProfilePage() {
   const [diffPreview, setDiffPreview] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [exportStatus, setExportStatus] = useState("");
+  const [exportError, setExportError] = useState("");
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -101,6 +103,36 @@ export function AdminProfilePage() {
     }
   };
 
+  const exportCsv = async () => {
+    setExportStatus("");
+    setExportError("");
+    try {
+      const response = await fetch("/api/admin/export/records.csv", { method: "POST" });
+      if (!response.ok) {
+        let detail = "Export failed";
+        try {
+          const body = await response.json() as ApiError;
+          detail = body.error ?? detail;
+        } catch {
+        }
+        throw new Error(detail);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "records.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      setExportStatus("Records CSV downloaded");
+    } catch (downloadError) {
+      setExportError(downloadError instanceof Error ? downloadError.message : "Export failed");
+    }
+  };
+
   return (
     <main className="admin-shell">
       <section className="profile-card" aria-labelledby="profile-title">
@@ -113,6 +145,10 @@ export function AdminProfilePage() {
           <input id="profile-file" type="file" accept="application/json,.json" onChange={handleFileChange} />
         </div>
         <button type="button" onClick={uploadProfile}>Upload profile</button>
+        <button type="button" onClick={exportCsv}>Export CSV</button>
+
+        {exportStatus && <p role="status" className="status">{exportStatus}</p>}
+        {exportError && <p role="alert" className="error">{exportError}</p>}
 
         <div className="control-group fetch-group">
           <label htmlFor="profile-name">Profile name</label>
