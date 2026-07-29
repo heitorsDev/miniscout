@@ -1,9 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { scoutRecordInputSchema } from "./record.schema";
 import type { RecordService } from "./record.service";
-import { profilePath } from "../profiles/profile.repository";
-import { readFile } from "node:fs/promises";
-import { validateScoringProfile } from "../profiles/profile.schema";
 import type { CompetitionService } from "../competitions/competition.service";
 
 export type RecordController = {
@@ -17,7 +14,6 @@ export type RecordController = {
 export type RecordControllerDeps = {
   recordService: RecordService;
   competitionService: CompetitionService;
-  profileStoragePath: string;
   cookieName: string;
 };
 
@@ -30,7 +26,7 @@ function errorResponse(message: string) {
 }
 
 export function createRecordController(deps: RecordControllerDeps): RecordController {
-  const { recordService, competitionService, profileStoragePath, cookieName } = deps;
+  const { recordService, competitionService, cookieName } = deps;
   return {
     async submit(request, response, next) {
       const cookieId = request.cookies?.[cookieName];
@@ -87,8 +83,7 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
           response.status(404).json(errorResponse("Competition not found"));
           return;
         }
-        const profile = await loadValidatedProfileForCompetition(profileStoragePath, competition.scoring_profile_name);
-        const groups = await recordService.listGroupsForCompetition(competitionId, profile);
+        const groups = await recordService.listGroupsForCompetition(competition);
         response.status(200).json({ groups });
       } catch (error) {
         next(error);
@@ -101,12 +96,10 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
           response.status(404).json(errorResponse("Competition not found"));
           return;
         }
-        const profile = await loadValidatedProfileForCompetition(profileStoragePath, competition.scoring_profile_name);
         const group = await recordService.getGroupForCompetition(
-          competition._id,
+          competition,
           String(request.params.match),
-          String(request.params.team),
-          profile
+          String(request.params.team)
         );
         if (!group) {
           response.status(404).json(errorResponse("Group not found"));
@@ -137,23 +130,4 @@ export function createRecordController(deps: RecordControllerDeps): RecordContro
       }
     }
   };
-}
-
-async function loadValidatedProfileForCompetition(
-  profileStoragePath: string,
-  name: string
-) {
-  try {
-    const contents = await readFile(profilePath(profileStoragePath, name), "utf8");
-    const result = validateScoringProfile(JSON.parse(contents));
-    if (!result.success) {
-      throw new Error("Competition profile invalid");
-    }
-    return result.data;
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      throw new Error("Competition profile missing on disk");
-    }
-    throw error;
-  }
 }

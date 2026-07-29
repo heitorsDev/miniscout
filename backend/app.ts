@@ -115,11 +115,10 @@ export function createApp(options: AppOptions = {}): Express {
     app.use("/api", createCompetitionRoutes({ controller: competitionController, lookupController: competitionLookupController }, requireMongo));
 
     const recordRepository = createMongoRecordRepository(options.mongoDatabase);
-    const recordService = createRecordService(recordRepository);
+    const recordService = createRecordService({ repository: recordRepository, profileStoragePath });
     const recordController = createRecordController({
       recordService,
       competitionService,
-      profileStoragePath,
       cookieName: SCOUTER_COOKIE
     });
     app.use("/api", createRecordRoutes(recordController, requireMongo));

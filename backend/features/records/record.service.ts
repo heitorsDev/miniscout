@@ -7,6 +7,8 @@ import {
 import type { ScoringProfileInput } from "../scoring/scoring";
 import { aggregateGroup } from "../scoring/aggregation";
 import { calculateEstimatedScore } from "../scoring/scoring";
+import { loadValidatedProfile } from "../profiles/profile.service";
+import type { CompetitionDocument } from "../../shared/db";
 import {
   toScoutRecordView,
   type CreatedScoutRecord,
@@ -24,14 +26,12 @@ export type RecordService = {
   ): Promise<CreatedScoutRecord>;
   deleteRecord(recordId: string): Promise<boolean>;
   listGroupsForCompetition(
-    competitionId: string,
-    profile: ScoringProfileInput
+    competition: CompetitionDocument
   ): Promise<ScoutGroupSummary[]>;
   getGroupForCompetition(
-    competitionId: string,
+    competition: CompetitionDocument,
     matchNumber: string,
-    teamNumber: string,
-    profile: ScoringProfileInput
+    teamNumber: string
   ): Promise<ScoutGroupDetail | null>;
   findExistingScouts(
     competitionId: string,
@@ -39,10 +39,20 @@ export type RecordService = {
     teamNumber: string,
     excludedCookieId?: string
   ): Promise<ExistingScoutsResult>;
+  loadProfileForCompetition(competition: CompetitionDocument): Promise<ScoringProfileInput>;
 };
 
-export function createRecordService(repository: RecordRepository): RecordService {
+export type RecordServiceDeps = {
+  repository: RecordRepository;
+  profileStoragePath: string;
+};
+
+export function createRecordService(deps: RecordServiceDeps): RecordService {
+  const { repository, profileStoragePath } = deps;
+  const loadProfile = (competition: CompetitionDocument) =>
+    loadValidatedProfile(profileStoragePath, competition.scoring_profile_name) as Promise<ScoringProfileInput>;
   return {
+    loadProfileForCompetition: loadProfile,
     async createRecord(competitionId, cookieId, input) {
       const doc = buildScoutRecordDocument(competitionId, cookieId, input);
       await repository.insert(doc);
@@ -51,8 +61,9 @@ export function createRecordService(repository: RecordRepository): RecordService
     async deleteRecord(recordId) {
       return repository.deleteById(recordId);
     },
-    async listGroupsForCompetition(competitionId, profile) {
-      const docs = await repository.listByCompetition(competitionId);
+    async listGroupsForCompetition(competition) {
+      const profile = await loadProfile(competition);
+      const docs = await repository.listByCompetition(competition._id);
       const grouped = new Map<string, typeof docs>();
       for (const doc of docs) {
         const key = `${doc.match_number}\u0000${doc.team_number}`;
@@ -62,8 +73,9 @@ export function createRecordService(repository: RecordRepository): RecordService
         summarizeGroup(records, aggregateGroup(records, profile).total)
       );
     },
-    async getGroupForCompetition(competitionId, matchNumber, teamNumber, profile) {
-      const docs = await repository.findByMatchTeam(competitionId, matchNumber, teamNumber);
+    async getGroupForCompetition(competition, matchNumber, teamNumber) {
+      const profile = await loadProfile(competition);
+      const docs = await repository.findByMatchTeam(competition._id, matchNumber, teamNumber);
       if (docs.length === 0) return null;
       return {
         match_number: matchNumber,
