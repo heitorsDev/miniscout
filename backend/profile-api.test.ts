@@ -59,6 +59,13 @@ describe("admin Profile API", () => {
     await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
   });
 
+  it("reports API health for readiness probes", async () => {
+    const response = await request(createApp()).get("/api/healthz");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: "ok" });
+  });
+
   it("accepts valid ScoringProfile JSON and persists it at configured path", async () => {
     const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-profiles-"));
     temporaryDirectories.push(profileStoragePath);
