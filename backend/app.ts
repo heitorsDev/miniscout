@@ -40,6 +40,7 @@ import {
   InMemoryMatchBroadcaster,
   type MatchBroadcaster
 } from "./match-broadcaster";
+import { openMatchNumberStream } from "./match-broadcast-stream";
 
 export type AppOptions = {
   profileStoragePath?: string;
@@ -477,6 +478,11 @@ export function createApp(options: AppOptions = {}): Express {
     } catch (error) {
       next(error);
     }
+  });
+
+  app.get("/api/scouter/competition/:competitionId/stream", (request, response) => {
+    const competitionId = request.params.competitionId;
+    openMatchNumberStream(matchBroadcaster, competitionId, response);
   });
 
   app.put("/api/admin/competition/:competitionId/match-number", async (request, response, next) => {
