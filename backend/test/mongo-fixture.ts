@@ -1,5 +1,5 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { startMongoDatabase, type MongoDatabase } from "../db";
+import { startMongoDatabase, type MongoDatabase } from "../shared/db";
 
 export type MongoFixture = {
   url: string;
