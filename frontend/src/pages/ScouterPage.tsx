@@ -45,6 +45,7 @@ export function ScouterPage() {
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: "idle" | "submitting" | "submitted" | "error"; recordId?: string; error?: string }>({ status: "idle" });
+  const [existingScouts, setExistingScouts] = useState<{ count: number; scouter_names: string[] } | null>(null);
   const [broadcast, setBroadcast] = useState<BroadcastState>({
     snapshot: { current_match_number: null, updated_at: null },
     connection: "idle"
@@ -256,6 +257,20 @@ export function ScouterPage() {
       values: draft.values
     });
   }, [draft, loadState, scheduleDraftSave]);
+
+  useEffect(() => {
+    if (!token || !draft.match_number.trim() || !draft.team_number.trim()) {
+      setExistingScouts(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      api.existingScouts(token, draft.match_number.trim(), draft.team_number.trim())
+        .then((result) => { if (!cancelled) setExistingScouts(result); })
+        .catch(() => { if (!cancelled) setExistingScouts(null); });
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [token, draft.match_number, draft.team_number]);
 
   const handleNameSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -509,6 +524,9 @@ export function ScouterPage() {
               />
             </label>
           </div>
+          {existingScouts && existingScouts.count > 0 && <p role="status" data-testid="existing-scouts-hint">
+            Already scouted {existingScouts.count} {existingScouts.count === 1 ? "time" : "times"} by {existingScouts.scouter_names.join(", ")}. You can still submit.
+          </p>}
           <div className="field-grid">
             {fieldList.map((field) => (
               <FieldRenderer
