@@ -54,13 +54,12 @@ test.describe("scouter end-to-end flow", () => {
 
     const list = await request.get(`${ADMIN_BASE_URL}/api/admin/competitions/${minted.id}/records`);
     expect(list.status()).toBe(200);
-    const records = (await list.json()).records;
-    expect(records.find((record: { match_number: string; team_number: string }) => record.match_number === "12" && record.team_number === "4251")).toBeTruthy();
+    const groups = (await list.json()).groups;
+    expect(groups.find((group: { match_number: string; team_number: string }) => group.match_number === "12" && group.team_number === "4251")).toBeTruthy();
 
     await page.goto(`${ADMIN_BASE_URL}/admin/competitions/${minted.id}`);
-    await expect(page.getByTestId("records-table")).toContainText("12");
-    await expect(page.getByTestId("records-table")).toContainText("4251");
-    await expect(page.getByTestId("records-table")).toContainText("Alice");
+    await expect(page.getByTestId("groups-table")).toContainText("12");
+    await expect(page.getByTestId("groups-table")).toContainText("4251");
   });
 
   test("reload preserves the scouter name and the unsubmitted draft", async ({ page, request }) => {

@@ -269,7 +269,7 @@ describe("scouter cookie + draft + record API", () => {
     expect(submitTwo.body.record_id).not.toBe(submitOne.body.record_id);
   });
 
-  it("lists records in the admin records endpoint", async () => {
+  it("lists ScoutRecord groups in the admin records endpoint", async () => {
     const register = await request(ctx.app)
       .post(`/api/competitions/${qrToken}/scouter`)
       .send({ name: "Frank" });
@@ -290,13 +290,13 @@ describe("scouter cookie + draft + record API", () => {
     const listResponse = await request(ctx.app).get(`/api/admin/competitions/${competitionId}/records`);
 
     expect(listResponse.status).toBe(200);
-    expect(listResponse.body.records).toHaveLength(1);
-    expect(listResponse.body.records[0]).toMatchObject({
+    expect(listResponse.body.groups).toHaveLength(1);
+    expect(listResponse.body.groups[0]).toMatchObject({
       match_number: "3",
       team_number: "9999",
-      scouter_name: "Frank",
-      submitted_at: expect.any(String),
-      values: { pieces_scored: 4, cycle_quality: "low" }
+      record_count: 1,
+      multi_scouted: false,
+      aggregated_total: 8
     });
   });
 });
