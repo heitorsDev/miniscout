@@ -3,19 +3,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import { profileNameSchema, validateScoringProfile, type ScoringProfile } from "./profile-schema";
+import { profilePath } from "./profile-storage";
 
 type AppOptions = {
   profileStoragePath?: string;
+  mongoUrl?: string;
 };
-
-function profilePath(profileStoragePath: string, name: string): string {
-  const storagePath = path.resolve(profileStoragePath);
-  const candidate = path.resolve(storagePath, `${name}.json`);
-  if (!candidate.startsWith(`${storagePath}${path.sep}`)) {
-    throw new Error("Profile path escapes storage directory");
-  }
-  return candidate;
-}
 
 async function saveProfile(profileStoragePath: string, profile: ScoringProfile): Promise<void> {
   await mkdir(profileStoragePath, { recursive: true });
