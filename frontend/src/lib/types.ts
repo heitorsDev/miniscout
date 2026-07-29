@@ -71,6 +71,14 @@ export type ScoutRecord = {
   submitted_at: string;
 };
 
+export type EstimatedScore = { total: number; by_phase: Record<string, number>; by_target: Record<string, number> };
+export type AggregatedField = { value: unknown; no_consensus: boolean };
+export type ScoutGroupSummary = { match_number: string; team_number: string; record_count: number; multi_scouted: boolean; aggregated_total: number };
+export type ScoutGroup = ScoutGroupSummary & {
+  records: Array<ScoutRecord & { estimated_score: EstimatedScore }>;
+  aggregated: { total: number; fields: Record<string, AggregatedField> };
+};
+
 export function defaultValueForField(field: ScoringField): FieldValue {
   switch (field.type) {
     case "counter":
