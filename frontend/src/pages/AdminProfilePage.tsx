@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AdminMatchBroadcastPanel } from "./AdminMatchBroadcastPanel";
 
 type ValidationError = {
   path: string;
@@ -9,6 +10,13 @@ type ApiError = {
   error?: string;
   errors?: ValidationError[];
 };
+
+type MatchSnapshot = {
+  current_match_number: number | null;
+  updated_at: string | null;
+};
+
+const COMPETITION_ID = "default";
 
 function formatDiff(profile: unknown): string {
   return JSON.stringify(profile, null, 2)
@@ -36,6 +44,27 @@ export function AdminProfilePage() {
   const [error, setError] = useState("");
   const [exportStatus, setExportStatus] = useState("");
   const [exportError, setExportError] = useState("");
+  const [matchSnapshot, setMatchSnapshot] = useState<MatchSnapshot>({
+    current_match_number: null,
+    updated_at: null
+  });
+
+  useEffect(() => {
+    fetch(`/api/scouter/competition/${COMPETITION_ID}`)
+      .then((response) => response.ok ? response.json() as Promise<{ current_match_number: number | null; updated_at?: string }> : null)
+      .then((data) => {
+        if (!data) {
+          return;
+        }
+        setMatchSnapshot({
+          current_match_number: data.current_match_number,
+          updated_at: data.updated_at ?? null
+        });
+      })
+      .catch(() => {
+        // tolerate; SSE will sync state once connected
+      });
+  }, []);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -174,6 +203,8 @@ export function AdminProfilePage() {
             <pre data-testid="fetched-profile" className="json-preview">{JSON.stringify(fetchedProfile, null, 2)}</pre>
           </section>
         )}
+
+        <AdminMatchBroadcastPanel snapshot={matchSnapshot} onChange={setMatchSnapshot} />
       </section>
     </main>
   );

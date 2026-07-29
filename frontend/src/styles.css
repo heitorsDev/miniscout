@@ -85,6 +85,14 @@ input:not([type]) {
   background: #fbfcfd;
 }
 
+input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #b7c4ce;
+  border-radius: 7px;
+  background: #fbfcfd;
+}
+
 button {
   padding: 10px 16px;
   border: 0;
@@ -331,4 +339,66 @@ button:hover {
 
 .confirmation-card {
   text-align: center;
+}
+
+.broadcast-pill {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 24px 0 12px;
+  padding: 16px 20px;
+  background: #eef6ff;
+  border: 1px solid #b3d4f4;
+  border-radius: 10px;
+}
+
+.broadcast-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1769aa;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.broadcast-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #0d2d4a;
+}
+
+.broadcast-time {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #4a6072;
+}
+
+.connection-state {
+  margin: 0 0 18px;
+  font-size: 0.85rem;
+  color: #526b7d;
+}
+
+.broadcast-panel {
+  margin-top: 34px;
+  padding: 20px;
+  border: 1px dashed #b3d4f4;
+  border-radius: 10px;
+  background: #f6fafd;
+}
+
+.broadcast-panel h2 {
+  margin: 0 0 10px;
+}
+
+.broadcast-panel .intro {
+  margin: 0 0 14px;
+  color: #34495a;
+}
+
+.broadcast-panel .inline-row {
+  align-items: flex-end;
+}
+
+.broadcast-panel .inline-row .inline-controls {
+  align-items: center;
 }
