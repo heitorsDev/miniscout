@@ -113,6 +113,23 @@ describe("admin Profile API", () => {
           key: "unsupported",
           label: "Unsupported",
           type: "unsupported"
+        },
+        {
+          key: "missing-boolean-points",
+          label: "Missing boolean points",
+          type: "boolean"
+        },
+        {
+          key: "invalid-number-points",
+          label: "Invalid number points",
+          type: "number",
+          points_per_unit: "one"
+        },
+        {
+          key: "note-with-points",
+          label: "Note with points",
+          type: "note",
+          points_per_unit: 1
         }
       ]
     });
@@ -127,7 +144,10 @@ describe("admin Profile API", () => {
       expect.objectContaining({ path: "fields[0].label" }),
       expect.objectContaining({ path: "fields[0].points_per_unit" }),
       expect.objectContaining({ path: "fields[1].points_per_option.yes" }),
-      expect.objectContaining({ path: "fields[2].type" })
+      expect.objectContaining({ path: "fields[2].type" }),
+      expect.objectContaining({ path: "fields[3].points_per_unit" }),
+      expect.objectContaining({ path: "fields[4].points_per_unit" }),
+      expect.objectContaining({ path: "fields[5]" })
     ]));
   });
 
