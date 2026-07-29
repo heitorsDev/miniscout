@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { aggregateGroup } from "./aggregation";
-import { calculateEstimatedScore, type ScoringProfileInput } from "./scoring";
+import { aggregateGroup } from "./features/scoring/aggregation";
+import { calculateEstimatedScore, type ScoringProfileInput } from "./features/scoring/scoring";
 import { newRecordId, type MongoDatabase, type ScoutRecordDocument } from "./db";
 
 export const scoutRecordInputSchema = z.object({

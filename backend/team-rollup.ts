@@ -2,7 +2,7 @@ import {
   calculateEstimatedScore,
   type RecordValues,
   type ScoringProfileInput
-} from "./scoring";
+} from "./features/scoring/scoring";
 
 export type ScoutRecordForRollup = {
   _id: string;

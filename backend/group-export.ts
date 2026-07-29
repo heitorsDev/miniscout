@@ -1,6 +1,6 @@
-import { aggregateGroup } from "./aggregation";
+import { aggregateGroup } from "./features/scoring/aggregation";
 import { applyOfficialScoresToCsvRows } from "./official-score-csv";
-import type { ScoringProfileInput } from "./scoring";
+import type { ScoringProfileInput } from "./features/scoring/scoring";
 import type { OfficialScoreMap, ScoutRecordForExport } from "./record-export";
 
 export function createGroupsCsv(
