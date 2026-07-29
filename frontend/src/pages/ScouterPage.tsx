@@ -8,13 +8,33 @@ type LoadState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "not_found" }
-  | { status: "ready"; profile: ScoringProfile; competitionName: string }
+  | { status: "ready"; profile: ScoringProfile; competitionName: string; competitionId: string }
   | { status: "error"; message: string };
 
 type NameState =
   | { status: "loading" }
   | { status: "needs_name" }
   | { status: "named"; name: string };
+
+type MatchSnapshot = {
+  current_match_number: number | null;
+  updated_at: string | null;
+};
+
+type BroadcastState = {
+  snapshot: MatchSnapshot;
+  connection: "idle" | "open" | "closed";
+};
+
+const DEFAULT_COMPETITION_ID = "default";
+
+function formatTimestamp(value: string | null): string {
+  if (!value) {
+    return "—";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleTimeString();
+}
 
 export function ScouterPage() {
   const [searchParams] = useSearchParams();
@@ -25,8 +45,18 @@ export function ScouterPage() {
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitState, setSubmitState] = useState<{ status: "idle" | "submitting" | "submitted" | "error"; recordId?: string; error?: string }>({ status: "idle" });
+  const [broadcast, setBroadcast] = useState<BroadcastState>({
+    snapshot: { current_match_number: null, updated_at: null },
+    connection: "idle"
+  });
+  const [broadcastStatus, setBroadcastStatus] = useState("");
+  const [broadcastError, setBroadcastError] = useState("");
+  const [broadcastInput, setBroadcastInput] = useState("");
+  const userEditedMatchRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedSnapshot = useRef<string>("");
+
+  const broadcastCompetitionId = loadState.status === "ready" ? loadState.competitionId : DEFAULT_COMPETITION_ID;
 
   useEffect(() => {
     if (!token) {
@@ -41,7 +71,8 @@ export function ScouterPage() {
         setLoadState({
           status: "ready",
           profile: response.profile,
-          competitionName: response.competition.name
+          competitionName: response.competition.name,
+          competitionId: response.competition._id
         });
       })
       .catch((error: unknown) => {
@@ -56,6 +87,64 @@ export function ScouterPage() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    const id = broadcastCompetitionId;
+    let cancelled = false;
+    fetch(`/api/scouter/competition/${id}`)
+      .then((response) => response.ok ? response.json() as Promise<{ current_match_number: number | null; updated_at?: string }> : null)
+      .then((data) => {
+        if (cancelled || !data) {
+          return;
+        }
+        setBroadcast((current) => ({
+          snapshot: {
+            current_match_number: data.current_match_number,
+            updated_at: data.updated_at ?? null
+          },
+          connection: current.connection
+        }));
+      })
+      .catch(() => {
+        // tolerate; SSE will sync state once connected
+      });
+
+    const source = new EventSource(`/api/scouter/competition/${id}/stream`);
+    source.addEventListener("match-number", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as MatchSnapshot & { updated_at: string };
+        setBroadcast((current) => ({
+          snapshot: { current_match_number: payload.current_match_number, updated_at: payload.updated_at },
+          connection: current.connection
+        }));
+      } catch {
+        // ignore malformed events
+      }
+    });
+    source.onopen = () => setBroadcast((current) => ({ ...current, connection: "open" }));
+    source.onerror = () => setBroadcast((current) => ({ ...current, connection: "closed" }));
+
+    return () => {
+      cancelled = true;
+      source.close();
+    };
+  }, [broadcastCompetitionId]);
+
+  useEffect(() => {
+    if (userEditedMatchRef.current) {
+      return;
+    }
+    const value = broadcast.snapshot.current_match_number;
+    if (value === null) {
+      return;
+    }
+    setDraft((current) => {
+      if (current.match_number.trim() !== "") {
+        return current;
+      }
+      return { ...current, match_number: String(value) };
+    });
+  }, [broadcast.snapshot.current_match_number]);
 
   useEffect(() => {
     if (!token) {
@@ -99,6 +188,9 @@ export function ScouterPage() {
           setDraftSavedAt(response.draft.updated_at ?? null);
           if (response.draft.scouter_name) {
             setNameState({ status: "named", name: response.draft.scouter_name });
+          }
+          if (response.draft.match_number) {
+            userEditedMatchRef.current = true;
           }
         }
       })
@@ -219,9 +311,89 @@ export function ScouterPage() {
       values: emptyValues
     };
     setDraft(newDraft);
+    userEditedMatchRef.current = false;
     setSubmitState({ status: "idle" });
     setDraftSavedAt(null);
   };
+
+  const handleBroadcast = async () => {
+    const trimmed = broadcastInput.trim();
+    const value = Number(trimmed);
+    if (!Number.isInteger(value) || value <= 0) {
+      setBroadcastError("Enter a positive integer match number");
+      setBroadcastStatus("");
+      return;
+    }
+    setBroadcastError("");
+    setBroadcastStatus("");
+    try {
+      const response = await fetch(`/api/scouter/competition/${broadcastCompetitionId}/match-number`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const apiError = body as { error?: string; errors?: { path: string; message: string }[] };
+        const details = apiError.errors?.map(({ path, message }) => `${path}: ${message}`).join("; ");
+        throw new Error(details || apiError.error || `Broadcast failed (${response.status})`);
+      }
+      setBroadcastStatus(`Broadcast match ${value}`);
+      setBroadcastInput(String(value));
+    } catch (broadcastError) {
+      setBroadcastError(broadcastError instanceof Error ? broadcastError.message : "Broadcast failed");
+    }
+  };
+
+  if (!token) {
+    return (
+      <main className="scouter-shell">
+        <section className="scouter-card" aria-labelledby="scouter-title">
+          <p className="eyebrow">Miniscout Scouter</p>
+          <h1 id="scouter-title">Scout Match</h1>
+          <p className="intro">
+            Current broadcast shows the suggested match for every scouter. Submit a value to override
+            the broadcast for everyone.
+          </p>
+
+          <div className="broadcast-pill" data-testid="current-match-banner">
+            <span className="broadcast-label">Current match</span>
+            <strong data-testid="current-match-number" className="broadcast-value">
+              {broadcast.snapshot.current_match_number ?? "—"}
+            </strong>
+            <span className="broadcast-time" data-testid="current-match-time">
+              {formatTimestamp(broadcast.snapshot.updated_at)}
+            </span>
+          </div>
+
+          <p className="connection-state" data-testid="sse-status">
+            Stream: <span data-testid="sse-state">{broadcast.connection === "open" ? "live" : broadcast.connection === "closed" ? "disconnected" : "connecting"}</span>
+          </p>
+
+          <div className="control-group">
+            <label htmlFor="match-input">Set current match number</label>
+            <input
+              id="match-input"
+              data-testid="match-input"
+              type="number"
+              min={1}
+              step={1}
+              value={broadcastInput}
+              onChange={(event) => setBroadcastInput(event.target.value)}
+              placeholder={broadcast.snapshot.current_match_number !== null ? String(broadcast.snapshot.current_match_number) : ""}
+            />
+          </div>
+
+          <button type="button" data-testid="broadcast-button" onClick={handleBroadcast}>
+            Broadcast match number
+          </button>
+
+          {broadcastStatus && <p role="status" className="status">{broadcastStatus}</p>}
+          {broadcastError && <p role="alert" className="error">{broadcastError}</p>}
+        </section>
+      </main>
+    );
+  }
 
   if (loadState.status === "idle" || loadState.status === "loading") {
     return (
@@ -296,6 +468,21 @@ export function ScouterPage() {
         <p className="muted">
           {savingDraft ? "Saving draft…" : draftSavedAt ? `Draft saved at ${new Date(draftSavedAt).toLocaleTimeString()}` : null}
         </p>
+
+        <div className="broadcast-pill" data-testid="current-match-banner">
+          <span className="broadcast-label">Current match</span>
+          <strong data-testid="current-match-number" className="broadcast-value">
+            {broadcast.snapshot.current_match_number ?? "—"}
+          </strong>
+          <span className="broadcast-time" data-testid="current-match-time">
+            {formatTimestamp(broadcast.snapshot.updated_at)}
+          </span>
+        </div>
+
+        <p className="connection-state" data-testid="sse-status">
+          Stream: <span data-testid="sse-state">{broadcast.connection === "open" ? "live" : broadcast.connection === "closed" ? "disconnected" : "connecting"}</span>
+        </p>
+
         <form onSubmit={handleSubmitRecord}>
           <div className="header-grid">
             <label className="scouter-field">
@@ -304,7 +491,10 @@ export function ScouterPage() {
                 type="text"
                 inputMode="numeric"
                 value={draft.match_number}
-                onChange={(event) => setDraft((current) => ({ ...current, match_number: event.target.value }))}
+                onChange={(event) => {
+                  userEditedMatchRef.current = true;
+                  setDraft((current) => ({ ...current, match_number: event.target.value }));
+                }}
                 required
               />
             </label>
