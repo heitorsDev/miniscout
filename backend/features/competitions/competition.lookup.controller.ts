@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { readFile } from "node:fs/promises";
-import type { CompetitionService } from "./competition.service";
-import { profilePath } from "../profiles/profile.repository";
+import {
+  CompetitionProfileDiskMissingError,
+  type CompetitionService
+} from "./competition.service";
 
 export type CompetitionLookupController = {
   resolveByQrToken(request: Request, response: Response, next: NextFunction): Promise<void>;
@@ -9,7 +10,6 @@ export type CompetitionLookupController = {
 
 export type CompetitionLookupControllerDeps = {
   competitionService: CompetitionService;
-  profileStoragePath: string;
 };
 
 function errorResponse(message: string) {
@@ -17,30 +17,17 @@ function errorResponse(message: string) {
 }
 
 export function createCompetitionLookupController(deps: CompetitionLookupControllerDeps): CompetitionLookupController {
-  const { competitionService, profileStoragePath } = deps;
+  const { competitionService } = deps;
   return {
     async resolveByQrToken(request, response, next) {
       const qrToken = String(request.params.token);
       try {
-        const competition = await competitionService.findByQrToken(qrToken);
-        if (!competition) {
+        const result = await competitionService.lookupByQrToken(qrToken);
+        if (!result) {
           response.status(404).json(errorResponse("Competition not found"));
           return;
         }
-
-        let profile: unknown;
-        try {
-          const contents = await readFile(profilePath(profileStoragePath, competition.scoring_profile_name), "utf8");
-          profile = JSON.parse(contents);
-        } catch (error) {
-          if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-            response.status(500).json(errorResponse("Competition profile missing on disk"));
-            return;
-          }
-          next(error);
-          return;
-        }
-
+        const { competition, profile } = result;
         response.status(200).json({
           competition: {
             _id: competition._id,
@@ -51,6 +38,10 @@ export function createCompetitionLookupController(deps: CompetitionLookupControl
           profile
         });
       } catch (error) {
+        if (error instanceof CompetitionProfileDiskMissingError) {
+          response.status(500).json(errorResponse("Competition profile missing on disk"));
+          return;
+        }
         next(error);
       }
     }

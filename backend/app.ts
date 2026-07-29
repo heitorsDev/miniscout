@@ -109,8 +109,7 @@ export function createApp(options: AppOptions = {}): Express {
     app.locals.competitionService = competitionService;
     const competitionController = createCompetitionController(competitionService);
     const competitionLookupController = createCompetitionLookupController({
-      competitionService,
-      profileStoragePath
+      competitionService
     });
     app.use("/api", createCompetitionRoutes({ controller: competitionController, lookupController: competitionLookupController }, requireMongo));
 

@@ -62,7 +62,3 @@ export function mintCompetitionFromInput(input: MintCompetitionInput): {
 export function viewCompetition(doc: CompetitionDocument): CompetitionView {
   return toCompetitionView(doc);
 }
-
-export { mintCompetitionFromInput as mintCompetitionFactory };
-
-export type MintCompetitionFactory = typeof mintCompetitionFromInput;
