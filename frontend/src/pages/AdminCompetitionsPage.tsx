@@ -16,9 +16,15 @@ type CreateState =
   | { status: "submitted"; competition: Competition; qr_url: string }
   | { status: "error"; message: string };
 
+type ProfilesState =
+  | { status: "loading" }
+  | { status: "ready"; profiles: string[] }
+  | { status: "error"; message: string };
+
 export function AdminCompetitionsPage() {
   const [loadState, setLoadState] = useState<LoadState>({ status: "idle" });
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
+  const [profilesState, setProfilesState] = useState<ProfilesState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
 
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
@@ -39,6 +45,26 @@ export function AdminCompetitionsPage() {
       cancelled = true;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setProfilesState({ status: "loading" });
+    api.listProfiles()
+      .then((response) => {
+        if (cancelled) return;
+        setProfilesState({ status: "ready", profiles: response.profiles });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setProfilesState({ status: "error", message: error instanceof Error ? error.message : "Could not load profiles" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const profileNames = profilesState.status === "ready" ? profilesState.profiles : [];
+  const hasProfiles = profileNames.length > 0;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -75,7 +101,22 @@ export function AdminCompetitionsPage() {
         </div>
         <div className="control-group">
           <label htmlFor="competition-profile">ScoringProfile name</label>
-          <input id="competition-profile" name="scoring_profile_name" required maxLength={120} />
+          {hasProfiles ? (
+            <select id="competition-profile" name="scoring_profile_name" required defaultValue="">
+              <option value="" disabled>Select a profile…</option>
+              {profileNames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          ) : (
+            <select id="competition-profile" name="scoring_profile_name" disabled defaultValue="">
+              <option value="">
+                {profilesState.status === "loading" && "Loading profiles…"}
+                {profilesState.status === "error" && "Could not load profiles"}
+                {profilesState.status === "ready" && "No profiles uploaded yet"}
+              </option>
+            </select>
+          )}
         </div>
         <div className="control-group">
           <label htmlFor="competition-url">LAN scouter URL</label>
@@ -87,7 +128,12 @@ export function AdminCompetitionsPage() {
             placeholder="http://192.168.1.10:8082"
           />
         </div>
-        <button type="submit" disabled={createState.status === "submitting"}>
+        {profilesState.status === "ready" && !hasProfiles && (
+          <p className="muted">
+            No ScoringProfiles uploaded yet — upload one on the <Link to="/admin">Profile page</Link> first.
+          </p>
+        )}
+        <button type="submit" disabled={createState.status === "submitting" || !hasProfiles}>
           {createState.status === "submitting" ? "Minting…" : "Mint competition"}
         </button>
       </form>
