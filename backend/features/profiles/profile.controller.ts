@@ -6,6 +6,7 @@ import { ProfileNotFoundError } from "./profile.repository";
 export type ProfileController = {
   upload(request: Request, response: Response, next: NextFunction): Promise<void>;
   readByName(request: Request, response: Response, next: NextFunction): Promise<void>;
+  list(request: Request, response: Response, next: NextFunction): Promise<void>;
 };
 
 function validationResponse(errors: Array<{ path: string; message: string; code: string }>) {
@@ -48,6 +49,14 @@ export function createProfileController(repository: ProfileRepository): ProfileC
           response.status(404).json({ error: "Profile not found" });
           return;
         }
+        next(error);
+      }
+    },
+    async list(_request, response, next) {
+      try {
+        const profiles = await repository.list();
+        response.status(200).json({ profiles });
+      } catch (error) {
         next(error);
       }
     }
