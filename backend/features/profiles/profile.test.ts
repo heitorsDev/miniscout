@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -172,5 +172,52 @@ describe("admin Profile API", () => {
     expect(response.body.errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ path: "name" })
     ]));
+  });
+
+  it("lists no profiles when the storage directory has none persisted yet", async () => {
+    const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-profiles-"));
+    temporaryDirectories.push(profileStoragePath);
+    const app = createApp({ profileStoragePath });
+
+    const response = await request(app).get("/api/admin/profiles");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ profiles: [] });
+  });
+
+  it("lists persisted profile names sorted alphabetically", async () => {
+    const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-profiles-"));
+    temporaryDirectories.push(profileStoragePath);
+    const app = createApp({ profileStoragePath });
+
+    await request(app).post("/api/admin/profiles").send(validProfile);
+    await request(app).post("/api/admin/profiles").send({ ...validProfile, name: "alpha-scheme" });
+
+    const response = await request(app).get("/api/admin/profiles");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ profiles: ["alpha-scheme", "rapid-recycle"] });
+  });
+
+  it("excludes dotfiles and temp files left behind by concurrent save() calls", async () => {
+    const profileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-profiles-"));
+    temporaryDirectories.push(profileStoragePath);
+    const app = createApp({ profileStoragePath });
+
+    await request(app).post("/api/admin/profiles").send(validProfile);
+    await writeFile(
+      path.join(profileStoragePath, `.${validProfile.name}.leftover-temp.tmp`),
+      "{}",
+      "utf8"
+    );
+    await writeFile(path.join(profileStoragePath, ".hidden-profile.json"), "{}", "utf8");
+
+    const filesOnDisk = await readdir(profileStoragePath);
+    expect(filesOnDisk.length).toBeGreaterThan(1);
+
+    const response = await request(app).get("/api/admin/profiles");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ profiles: ["rapid-recycle"] });
   });
 });
