@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { ScoringProfile } from "./profile.types";
@@ -24,6 +24,7 @@ export type ProfileRepository = {
   load(name: string): Promise<unknown>;
   loadRaw(name: string): Promise<string>;
   save(profile: ScoringProfile): Promise<void>;
+  list(): Promise<string[]>;
 };
 
 export function createFileProfileRepository(storagePath: string): ProfileRepository {
@@ -66,6 +67,21 @@ export function createFileProfileRepository(storagePath: string): ProfileReposit
       const temporaryPath = path.join(storagePath, `.${profile.name}.${randomUUID()}.tmp`);
       await writeFile(temporaryPath, `${JSON.stringify(profile, null, 2)}\n`, "utf8");
       await rename(temporaryPath, destination);
+    },
+    async list() {
+      let entries: string[];
+      try {
+        entries = await readdir(storagePath);
+      } catch (error) {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+          return [];
+        }
+        throw error;
+      }
+      return entries
+        .filter((entry) => !entry.startsWith(".") && entry.endsWith(".json"))
+        .map((entry) => entry.slice(0, -".json".length))
+        .sort();
     }
   };
 }
