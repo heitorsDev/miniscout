@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { api, ApiError } from "../lib/api";
@@ -39,6 +39,12 @@ export function AdminCompetitionDetailPage() {
     message: ""
   });
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
+
+  const matchNumberOptions = useMemo(() => {
+    if (state.status !== "ready") return [] as string[];
+    const distinct = new Set(state.groups.map((group) => group.match_number));
+    return Array.from(distinct).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,7 +214,13 @@ export function AdminCompetitionDetailPage() {
       <div className="records-block" data-testid="official-scores-block">
         <h2>Official scores</h2>
         <form onSubmit={handleOfficialScoreSubmit} aria-label="Save official score">
-          <div className="control-group"><label htmlFor="official-match">Match number</label><input id="official-match" data-testid="official-match-input" value={scoreForm.match_number} onChange={(event) => setScoreForm({ ...scoreForm, match_number: event.target.value })} maxLength={20} required /></div>
+          <div className="control-group">
+            <label htmlFor="official-match">Match number</label>
+            <input id="official-match" data-testid="official-match-input" list="official-match-options" value={scoreForm.match_number} onChange={(event) => setScoreForm({ ...scoreForm, match_number: event.target.value })} maxLength={20} required />
+            <datalist id="official-match-options">
+              {matchNumberOptions.map((matchNumber) => <option key={matchNumber} value={matchNumber} />)}
+            </datalist>
+          </div>
           <div className="inline-controls">
             <div className="control-group" style={{ flex: 1 }}><label htmlFor="official-red">Red score</label><input id="official-red" data-testid="official-red-input" type="number" step={1} value={scoreForm.red_score} onChange={(event) => setScoreForm({ ...scoreForm, red_score: event.target.value })} required /></div>
             <div className="control-group" style={{ flex: 1 }}><label htmlFor="official-blue">Blue score</label><input id="official-blue" data-testid="official-blue-input" type="number" step={1} value={scoreForm.blue_score} onChange={(event) => setScoreForm({ ...scoreForm, blue_score: event.target.value })} required /></div>
