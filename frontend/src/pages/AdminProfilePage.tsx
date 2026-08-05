@@ -237,7 +237,7 @@ export function AdminProfilePage() {
                 <option value="">
                   {profilesState.status === "loading" && "Loading profiles…"}
                   {profilesState.status === "error" && "Could not load profiles"}
-                  {profilesState.status === "ready" && "No profiles uploaded yet — upload one above"}
+                  {profilesState.status === "ready" && "No profiles available"}
                 </option>
               </select>
             )}
