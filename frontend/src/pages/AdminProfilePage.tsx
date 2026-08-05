@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { api } from "../lib/api";
 import { AdminMatchBroadcastPanel } from "./AdminMatchBroadcastPanel";
 
 type ValidationError = {
@@ -15,6 +16,11 @@ type MatchSnapshot = {
   current_match_number: number | null;
   updated_at: string | null;
 };
+
+type ProfilesState =
+  | { status: "loading" }
+  | { status: "ready"; profiles: string[] }
+  | { status: "error"; message: string };
 
 const COMPETITION_ID = "default";
 
@@ -48,6 +54,38 @@ export function AdminProfilePage() {
     current_match_number: null,
     updated_at: null
   });
+  const [profilesState, setProfilesState] = useState<ProfilesState>({ status: "loading" });
+
+  const loadProfiles = useCallback(async (): Promise<string[]> => {
+    setProfilesState({ status: "loading" });
+    try {
+      const { profiles } = await api.listProfiles();
+      setProfilesState({ status: "ready", profiles });
+      return profiles;
+    } catch (loadError) {
+      setProfilesState({
+        status: "error",
+        message: loadError instanceof Error ? loadError.message : "Could not load profiles"
+      });
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
+
+  useEffect(() => {
+    if (profilesState.status !== "ready") {
+      return;
+    }
+    if (profilesState.profiles.length === 0) {
+      return;
+    }
+    if (!profileName || !profilesState.profiles.includes(profileName)) {
+      setProfileName(profilesState.profiles[0]);
+    }
+  }, [profilesState, profileName]);
 
   useEffect(() => {
     fetch(`/api/scouter/competition/${COMPETITION_ID}`)
@@ -77,9 +115,6 @@ export function AdminProfilePage() {
     try {
       const parsed = JSON.parse(await file.text()) as { name?: unknown };
       setDraftProfile(parsed);
-      if (typeof parsed.name === "string") {
-        setProfileName(parsed.name);
-      }
       setDiffPreview(formatDiff(parsed));
     } catch {
       setDraftProfile(null);
@@ -108,6 +143,11 @@ export function AdminProfilePage() {
       setFetchedProfile(saved);
       setStatus("Profile saved");
       setDiffPreview(formatDiff(saved));
+      const savedName = (saved as { name?: unknown }).name;
+      const profiles = await loadProfiles();
+      if (typeof savedName === "string" && profiles.includes(savedName)) {
+        setProfileName(savedName);
+      }
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Profile upload failed");
     }
@@ -182,9 +222,36 @@ export function AdminProfilePage() {
         <div className="control-group fetch-group">
           <label htmlFor="profile-name">Profile name</label>
           <div className="inline-controls">
-            <input id="profile-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} />
-            <button type="button" onClick={fetchProfile}>Fetch profile</button>
+            {profilesState.status === "ready" && profilesState.profiles.length > 0 ? (
+              <select
+                id="profile-name"
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
+              >
+                {profilesState.profiles.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            ) : (
+              <select id="profile-name" disabled value="">
+                <option value="">
+                  {profilesState.status === "loading" && "Loading profiles…"}
+                  {profilesState.status === "error" && "Could not load profiles"}
+                  {profilesState.status === "ready" && "No profiles uploaded yet — upload one above"}
+                </option>
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={fetchProfile}
+              disabled={!(profilesState.status === "ready" && profilesState.profiles.length > 0)}
+            >
+              Fetch profile
+            </button>
           </div>
+          {profilesState.status === "ready" && profilesState.profiles.length === 0 && (
+            <p className="muted">No profiles uploaded yet — upload one above.</p>
+          )}
         </div>
 
         {status && <p role="status" className="status">{status}</p>}
