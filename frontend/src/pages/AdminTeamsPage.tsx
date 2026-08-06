@@ -96,9 +96,9 @@ export function AdminTeamsPage() {
           <tbody>
             {state.teams.map((team) => (
               <tr key={team.team_number} data-testid="team-row">
-                <td>{team.team_number}</td>
-                <td>{team.record_count}</td>
-                <td>{team.matches_scouted.join(", ")}</td>
+                <td className="numeric">{team.team_number}</td>
+                <td className="numeric">{team.record_count}</td>
+                <td className="numeric">{team.matches_scouted.join(", ")}</td>
                 <td>
                   <ul className="team-matches-list">
                     {team.matches.map((match) => (

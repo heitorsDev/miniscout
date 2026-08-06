@@ -177,8 +177,8 @@ export function AdminCompetitionDetailPage() {
           <tbody>
             {state.groups.map((group) => (
               <tr key={`${group.match_number}-${group.team_number}`} data-testid="group-row">
-                <td><button type="button" onClick={() => api.getAdminGroup(id, group.match_number, group.team_number).then((result) => setSelected(result.group))}>{group.match_number}</button></td>
-                <td>{group.team_number}</td><td>{group.record_count}</td><td>{group.multi_scouted ? "Yes" : "No"}</td><td>{group.aggregated_total}</td>
+                <td><button type="button" className="numeric" onClick={() => api.getAdminGroup(id, group.match_number, group.team_number).then((result) => setSelected(result.group))}>{group.match_number}</button></td>
+                <td className="numeric">{group.team_number}</td><td className="numeric">{group.record_count}</td><td>{group.multi_scouted ? "Yes" : "No"}</td><td className="numeric">{group.aggregated_total}</td>
               </tr>
             ))}
           </tbody>
@@ -187,7 +187,7 @@ export function AdminCompetitionDetailPage() {
       {selected && (
         <section data-testid="group-detail">
           <h2>Aggregated view</h2>
-          <p>Median EstimatedScore total: <strong>{selected.aggregated.total}</strong></p>
+          <p>Median EstimatedScore total: <strong className="numeric">{selected.aggregated.total}</strong></p>
           <dl>{Object.entries(selected.aggregated.fields).map(([key, field]) => <div key={key}><dt>{key}</dt><dd>{String(field.value ?? "No consensus")}{field.no_consensus && <strong> — no consensus</strong>}</dd></div>)}</dl>
           <h2>{selected.record_count} individual records</h2>
           <div className="record-columns">{selected.records.map((record) => <article key={record._id} data-testid="record-card"><h3>{record.scouter_name}</h3><pre>{JSON.stringify(record.values, null, 2)}</pre><p>EstimatedScore: {record.estimated_score.total}</p></article>)}</div>
@@ -203,7 +203,7 @@ export function AdminCompetitionDetailPage() {
             <thead><tr><th>Submitted at</th><th>Match</th><th>Team</th><th>Scouter name</th><th>Actions</th></tr></thead>
             <tbody>{state.records.map((record) => (
               <tr key={record._id} data-testid="record-row">
-                <td>{new Date(record.submitted_at).toLocaleString()}</td><td>{record.match_number}</td><td>{record.team_number}</td><td>{record.scouter_name}</td>
+                <td>{new Date(record.submitted_at).toLocaleString()}</td><td className="numeric">{record.match_number}</td><td className="numeric">{record.team_number}</td><td>{record.scouter_name}</td>
                 <td><button type="button" data-testid={`delete-record-${record._id}`} onClick={() => handleDelete(record._id)} disabled={deletingId === record._id}>{deletingId === record._id ? "Deleting…" : "Delete"}</button></td>
               </tr>
             ))}</tbody>
@@ -232,7 +232,7 @@ export function AdminCompetitionDetailPage() {
         {state.officialScores.length === 0 ? <p className="muted">No official scores entered yet.</p> : (
           <table className="records-table" data-testid="official-scores-table">
             <thead><tr><th>Match</th><th>Red</th><th>Blue</th><th>Updated</th></tr></thead>
-            <tbody>{state.officialScores.map((score) => <tr key={score._id} data-testid="official-score-row"><td>{score.match_number}</td><td>{score.red_score}</td><td>{score.blue_score}</td><td>{new Date(score.updated_at).toLocaleString()}</td></tr>)}</tbody>
+            <tbody>{state.officialScores.map((score) => <tr key={score._id} data-testid="official-score-row"><td className="numeric">{score.match_number}</td><td className="numeric">{score.red_score}</td><td className="numeric">{score.blue_score}</td><td>{new Date(score.updated_at).toLocaleString()}</td></tr>)}</tbody>
           </table>
         )}
       </div>

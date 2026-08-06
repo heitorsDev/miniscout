@@ -3,6 +3,9 @@ import cookieParser from "cookie-parser";
 import { createFileProfileRepository } from "./features/profiles/profile.repository";
 import { createProfileController } from "./features/profiles/profile.controller";
 import { createProfileRoutes } from "./features/profiles/profile.routes";
+import { createFileStyleProfileRepository } from "./features/style-profile/style-profile.repository";
+import { createStyleProfileController } from "./features/style-profile/style-profile.controller";
+import { createStyleProfileRoutes } from "./features/style-profile/style-profile.routes";
 import type { MongoDatabase } from "./shared/db";
 import {
   createMongoCompetitionRepository
@@ -47,6 +50,7 @@ import type { RecordExportDataLoader } from "./features/csv-export/csv.types";
 
 export type AppOptions = {
   profileStoragePath?: string;
+  styleProfileStoragePath?: string;
   mongoDatabase?: MongoDatabase;
   mongoUrl?: string;
   loadRecordExportData?: RecordExportDataLoader;
@@ -75,6 +79,7 @@ function requireMongo(req: express.Request, res: express.Response, next: express
 
 export function createApp(options: AppOptions = {}): Express {
   const profileStoragePath = options.profileStoragePath ?? process.env.PROFILE_STORAGE_PATH ?? "/data/profiles";
+  const styleProfileStoragePath = options.styleProfileStoragePath ?? process.env.STYLE_PROFILE_STORAGE_PATH ?? "/data/style-profile";
   const loadRecordExportData = options.loadRecordExportData ?? (
     options.mongoDatabase
       ? createMongoRecordExportDataLoader({
@@ -97,6 +102,10 @@ export function createApp(options: AppOptions = {}): Express {
   const profileRepository = createFileProfileRepository(profileStoragePath);
   const profileController = createProfileController(profileRepository);
   app.use("/api", createProfileRoutes(profileController));
+
+  const styleProfileRepository = createFileStyleProfileRepository(styleProfileStoragePath);
+  const styleProfileController = createStyleProfileController(styleProfileRepository);
+  app.use("/api", createStyleProfileRoutes(styleProfileController));
 
   const broadcastController = createBroadcastController(matchBroadcaster);
   app.use("/api", createBroadcastRoutes(broadcastController, matchBroadcaster));
