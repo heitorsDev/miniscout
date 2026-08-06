@@ -309,6 +309,19 @@ button:hover {
   background: var(--color-surface);
 }
 
+.dark-variant-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.dark-variant-toggle input {
+  width: auto;
+}
+
 .admin-nav {
   width: min(100%, 880px);
   margin: 0 auto var(--space-5);

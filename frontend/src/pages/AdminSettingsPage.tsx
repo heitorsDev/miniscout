@@ -95,6 +95,28 @@ export function AdminSettingsPage() {
     setForm({ ...form, colors: { ...form.colors, [key]: value } });
   };
 
+  const setDarkColor = (key: StyleProfileColorKey, value: string) => {
+    if (!form) {
+      return;
+    }
+    setForm({ ...form, colors: { ...form.colors, dark: { ...form.colors.dark, [key]: value } } });
+  };
+
+  const toggleDarkVariant = (enabled: boolean) => {
+    if (!form) {
+      return;
+    }
+    if (!enabled) {
+      const { dark: _dark, ...rest } = form.colors;
+      setForm({ ...form, colors: rest });
+      return;
+    }
+    // Seed the dark variant from the current light colors so every field
+    // starts with a sensible, visible value.
+    const { dark: _dark, ...lightColors } = form.colors;
+    setForm({ ...form, colors: { ...form.colors, dark: { ...lightColors } } });
+  };
+
   const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !form) {
@@ -279,6 +301,34 @@ export function AdminSettingsPage() {
           <div className="logo-preview">
             <img src={form.logo.dataUri} alt="Logo preview" data-testid="logo-preview-image" />
             <button type="button" onClick={clearLogo}>Clear logo</button>
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="dark-variant-title">
+        <h2 id="dark-variant-title">Dark variant</h2>
+        <label className="dark-variant-toggle" htmlFor="dark-variant-enabled">
+          <input
+            id="dark-variant-enabled"
+            type="checkbox"
+            checked={Boolean(form.colors.dark)}
+            onChange={(event) => toggleDarkVariant(event.target.checked)}
+          />
+          <span>Configure a dark variant (applied automatically under `prefers-color-scheme: dark`)</span>
+        </label>
+        {form.colors.dark && (
+          <div className="color-field-grid" data-testid="dark-color-grid">
+            {COLOR_FIELDS.map(({ key, label }) => (
+              <label key={key} className="color-field" htmlFor={`dark-color-${key}`}>
+                <span>{label}</span>
+                <input
+                  id={`dark-color-${key}`}
+                  type="color"
+                  value={form.colors.dark?.[key] ?? form.colors[key]}
+                  onChange={(event) => setDarkColor(key, event.target.value)}
+                />
+              </label>
+            ))}
           </div>
         )}
       </section>
