@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { applyStyleProfile } from "../lib/applyStyleProfile";
 import { useStyleProfile } from "../lib/StyleProfileContext";
-import type { StyleProfile, StyleProfileColorKey } from "../lib/types";
+import {
+  STYLE_PROFILE_DENSITY_OPTIONS,
+  STYLE_PROFILE_FONT_MONO_OPTIONS,
+  STYLE_PROFILE_FONT_UI_OPTIONS,
+  STYLE_PROFILE_RADIUS_OPTIONS,
+  type StyleProfile,
+  type StyleProfileColorKey,
+  type StyleProfileFontMono,
+  type StyleProfileFontUi,
+  type StyleProfileShapeDensity,
+  type StyleProfileShapeRadius
+} from "../lib/types";
 
 type LoadState =
   | { status: "loading" }
@@ -20,6 +31,24 @@ const COLOR_FIELDS: Array<{ key: StyleProfileColorKey; label: string }> = [
   { key: "danger", label: "Danger" },
   { key: "success", label: "Success" }
 ];
+
+const FONT_UI_LABELS: Record<StyleProfileFontUi, string> = {
+  inter: "Inter"
+};
+
+const FONT_MONO_LABELS: Record<StyleProfileFontMono, string> = {
+  "jetbrains-mono": "JetBrains Mono"
+};
+
+const RADIUS_LABELS: Record<StyleProfileShapeRadius, string> = {
+  sharp: "Sharp",
+  rounded: "Rounded"
+};
+
+const DENSITY_LABELS: Record<StyleProfileShapeDensity, string> = {
+  compact: "Compact",
+  spacious: "Spacious"
+};
 
 export function AdminSettingsPage() {
   const { setProfile: publishProfile } = useStyleProfile();
@@ -138,6 +167,76 @@ export function AdminSettingsPage() {
               />
             </label>
           ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="typography-title">
+        <h2 id="typography-title">Typography</h2>
+        <div className="control-group">
+          <label htmlFor="font-ui">UI font</label>
+          <select
+            id="font-ui"
+            value={form.typography.fontUi}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                typography: { ...form.typography, fontUi: event.target.value as StyleProfileFontUi }
+              })
+            }
+          >
+            {STYLE_PROFILE_FONT_UI_OPTIONS.map((option) => (
+              <option key={option} value={option}>{FONT_UI_LABELS[option]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="control-group">
+          <label htmlFor="font-mono">Mono/numeric font</label>
+          <select
+            id="font-mono"
+            value={form.typography.fontMono}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                typography: { ...form.typography, fontMono: event.target.value as StyleProfileFontMono }
+              })
+            }
+          >
+            {STYLE_PROFILE_FONT_MONO_OPTIONS.map((option) => (
+              <option key={option} value={option}>{FONT_MONO_LABELS[option]}</option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      <section aria-labelledby="shape-title">
+        <h2 id="shape-title">Shape</h2>
+        <div className="control-group">
+          <label htmlFor="shape-radius">Corner radius</label>
+          <select
+            id="shape-radius"
+            value={form.shape.radius}
+            onChange={(event) =>
+              setForm({ ...form, shape: { ...form.shape, radius: event.target.value as StyleProfileShapeRadius } })
+            }
+          >
+            {STYLE_PROFILE_RADIUS_OPTIONS.map((option) => (
+              <option key={option} value={option}>{RADIUS_LABELS[option]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="control-group">
+          <label htmlFor="shape-density">Density</label>
+          <select
+            id="shape-density"
+            value={form.shape.density}
+            onChange={(event) =>
+              setForm({ ...form, shape: { ...form.shape, density: event.target.value as StyleProfileShapeDensity } })
+            }
+          >
+            {STYLE_PROFILE_DENSITY_OPTIONS.map((option) => (
+              <option key={option} value={option}>{DENSITY_LABELS[option]}</option>
+            ))}
+          </select>
         </div>
       </section>
 
