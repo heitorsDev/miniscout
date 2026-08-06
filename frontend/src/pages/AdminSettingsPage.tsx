@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { applyStyleProfile } from "../lib/applyStyleProfile";
 import { useStyleProfile } from "../lib/StyleProfileContext";
+import { StylePresetGallery } from "../components/StylePresetGallery";
+import { stylePresets, type StylePreset } from "../lib/stylePresets";
 import {
   STYLE_PROFILE_DENSITY_OPTIONS,
   STYLE_PROFILE_FONT_MONO_OPTIONS,
@@ -137,6 +139,14 @@ export function AdminSettingsPage() {
     setForm({ ...form, logo: { ...form.logo, dataUri: null } });
   };
 
+  // Reuses the exact same form-state-set that every manual edit above goes
+  // through, so the existing live-preview effect picks it up with no
+  // separate preview path. structuredClone guards against later in-place
+  // edits on the form ever reaching back into the bundled preset object.
+  const applyPreset = (preset: StylePreset) => {
+    setForm(structuredClone(preset.profile));
+  };
+
   const handleSave = async () => {
     if (!form) {
       return;
@@ -184,6 +194,15 @@ export function AdminSettingsPage() {
         Edit the active visual identity. Every change previews live below and across the app immediately;
         nothing is persisted until you press Save.
       </p>
+
+      <section aria-labelledby="presets-title">
+        <h2 id="presets-title">Start from a preset</h2>
+        <p className="intro">
+          Selecting a preset replaces every field below with its full profile and previews immediately.
+          Presets are starting templates only — nothing is saved until you press Save.
+        </p>
+        <StylePresetGallery presets={stylePresets} onSelect={applyPreset} />
+      </section>
 
       <div className="control-group">
         <label htmlFor="style-profile-name">Profile name</label>
