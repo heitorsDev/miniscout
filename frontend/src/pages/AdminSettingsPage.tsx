@@ -2,12 +2,24 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { applyStyleProfile } from "../lib/applyStyleProfile";
 import { useStyleProfile } from "../lib/StyleProfileContext";
-import type { StyleProfile } from "../lib/types";
+import type { StyleProfile, StyleProfileColorKey } from "../lib/types";
 
 type LoadState =
   | { status: "loading" }
   | { status: "ready" }
   | { status: "error"; message: string };
+
+const COLOR_FIELDS: Array<{ key: StyleProfileColorKey; label: string }> = [
+  { key: "background", label: "Background" },
+  { key: "surface", label: "Surface" },
+  { key: "text", label: "Text" },
+  { key: "textMuted", label: "Muted text" },
+  { key: "accent", label: "Accent" },
+  { key: "accentContrast", label: "Accent contrast" },
+  { key: "border", label: "Border" },
+  { key: "danger", label: "Danger" },
+  { key: "success", label: "Success" }
+];
 
 export function AdminSettingsPage() {
   const { setProfile: publishProfile } = useStyleProfile();
@@ -46,6 +58,13 @@ export function AdminSettingsPage() {
     }
     applyStyleProfile(form);
   }, [form]);
+
+  const setColor = (key: StyleProfileColorKey, value: string) => {
+    if (!form) {
+      return;
+    }
+    setForm({ ...form, colors: { ...form.colors, [key]: value } });
+  };
 
   const handleSave = async () => {
     if (!form) {
@@ -104,6 +123,23 @@ export function AdminSettingsPage() {
           onChange={(event) => setForm({ ...form, name: event.target.value })}
         />
       </div>
+
+      <section aria-labelledby="colors-title">
+        <h2 id="colors-title">Colors</h2>
+        <div className="color-field-grid">
+          {COLOR_FIELDS.map(({ key, label }) => (
+            <label key={key} className="color-field" htmlFor={`color-${key}`}>
+              <span>{label}</span>
+              <input
+                id={`color-${key}`}
+                type="color"
+                value={form.colors[key]}
+                onChange={(event) => setColor(key, event.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+      </section>
 
       <button type="button" onClick={handleSave} disabled={saving}>
         {saving ? "Saving…" : "Save"}
