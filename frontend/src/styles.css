@@ -322,6 +322,28 @@ button:hover {
   width: auto;
 }
 
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brand-logo-image {
+  max-height: 32px;
+  max-width: 120px;
+}
+
+.brand-team-name {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+}
+
+.scouter-header {
+  width: min(100%, 720px);
+  margin: 0 auto var(--space-4);
+}
+
 .admin-nav {
   width: min(100%, 880px);
   margin: 0 auto var(--space-5);
