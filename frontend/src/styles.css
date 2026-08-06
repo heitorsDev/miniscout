@@ -47,7 +47,7 @@
   --color-text-muted: #9aa2ab;
   --color-accent: #ff6a00;
   --color-accent-contrast: #14100a;
-  --color-border: #3a3f47;
+  --color-border: #454b54;
   --color-danger: #ff4d4f;
   --color-success: #35c176;
 
@@ -88,15 +88,27 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
 code,
+.numeric,
 input[type="number"],
 input[inputmode="numeric"],
 input[inputmode="decimal"] {
   font-family: var(--font-mono);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .admin-shell {
@@ -111,7 +123,6 @@ input[inputmode="decimal"] {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 14px 36px rgb(30 53 72 / 10%);
 }
 
 .eyebrow {
@@ -157,12 +168,14 @@ label {
 
 input[type="file"],
 input[type="text"],
-input:not([type]) {
+input:not([type]),
+select {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
+  color: var(--color-text);
 }
 
 input[type="number"] {
@@ -171,6 +184,7 @@ input[type="number"] {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
+  color: var(--color-text);
 }
 
 button {
@@ -279,6 +293,10 @@ button:hover {
   border: 1px solid var(--color-border);
 }
 
+.nav-tab:hover {
+  border-color: var(--color-accent);
+}
+
 .nav-tab.active {
   color: var(--color-accent-contrast);
   background: var(--color-accent);
@@ -306,6 +324,10 @@ button:hover {
   color: var(--color-text-muted);
 }
 
+.records-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
 .qr-block,
 .records-block {
   margin: calc(var(--space-5) + var(--space-1)) 0;
@@ -330,7 +352,6 @@ button:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 28px rgb(30 53 72 / 10%);
 }
 
 .header-grid {
