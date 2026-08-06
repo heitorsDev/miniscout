@@ -17,7 +17,7 @@ test("admin uploads Profile JSON and reads it back", async ({ page, request }) =
   expect(uploadResponse.status()).toBe(200);
   expect(await uploadResponse.json()).toEqual(profile);
 
-  await page.getByLabel("Profile name").fill("e2e-profile");
+  await page.getByLabel("Profile name").selectOption("e2e-profile");
   await page.getByRole("button", { name: "Fetch profile" }).click();
   await expect(page.getByTestId("fetched-profile")).toContainText("e2e-profile");
 

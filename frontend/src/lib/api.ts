@@ -57,6 +57,9 @@ export const api = {
   listAdminCompetitions(): Promise<{ competitions: Competition[] }> {
     return request("/api/admin/competitions");
   },
+  listProfiles(): Promise<{ profiles: string[] }> {
+    return request("/api/admin/profiles");
+  },
   mintCompetition(input: { name: string; scoring_profile_name: string; lan_base_url: string }): Promise<{
     competition: Competition;
     qr_url: string;
