@@ -5,6 +5,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api } from "../lib/api";
 import { AdminSettingsPage } from "../pages/AdminSettingsPage";
+import { stylePresets } from "../lib/stylePresets";
 import type { StyleProfile } from "../lib/types";
 
 vi.mock("../lib/api", () => ({
@@ -105,4 +106,38 @@ describe("AdminSettingsPage", () => {
     await user.click(screen.getByLabelText(/Configure a dark variant/i));
     expect(screen.getByTestId("dark-color-grid")).toBeInTheDocument();
   });
+
+  it("renders a labeled preset card for every bundled preset", async () => {
+    render(<AdminSettingsPage />);
+    await screen.findByLabelText("Profile name");
+
+    for (const preset of stylePresets) {
+      expect(screen.getByTestId(`style-preset-${preset.id}`)).toHaveTextContent(preset.label);
+    }
+  });
+
+  it.each(stylePresets.map((preset) => [preset.id, preset] as const))(
+    "selecting the %s preset replaces the form and live-applies its CSS variables",
+    async (_id, preset) => {
+      const user = userEvent.setup();
+      render(<AdminSettingsPage />);
+      const nameInput = await screen.findByLabelText("Profile name") as HTMLInputElement;
+      expect(nameInput.value).toBe("Pit-Crew Industrial");
+
+      await user.click(screen.getByTestId(`style-preset-${preset.id}`));
+
+      await waitFor(() => {
+        expect(nameInput.value).toBe(preset.profile.name);
+      });
+      expect(document.documentElement.style.getPropertyValue("--color-bg")).toBe(preset.profile.colors.background);
+      expect(document.documentElement.style.getPropertyValue("--color-accent")).toBe(preset.profile.colors.accent);
+      expect(document.documentElement.style.getPropertyValue("--color-surface")).toBe(preset.profile.colors.surface);
+
+      const accentInput = screen.getByLabelText("Accent") as HTMLInputElement;
+      expect(accentInput.value.toLowerCase()).toBe(preset.profile.colors.accent.toLowerCase());
+
+      // Presets are one-way starting templates: nothing is persisted by selecting one.
+      expect(api.updateStyleProfile).not.toHaveBeenCalled();
+    }
+  );
 });
