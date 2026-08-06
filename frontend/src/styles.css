@@ -39,16 +39,17 @@
 }
 
 :root {
-  /* Color tokens */
-  --color-bg: #eef2f5;
-  --color-surface: #ffffff;
-  --color-text: #17212b;
-  --color-text-muted: #52606b;
-  --color-accent: #1769aa;
-  --color-accent-contrast: #ffffff;
-  --color-border: #d7dee5;
-  --color-danger: #8c2222;
-  --color-success: #155d39;
+  /* Color tokens: Pit-Crew Industrial palette — dark charcoal shell,
+     lighter charcoal surfaces, safety-orange accent. */
+  --color-bg: #14161a;
+  --color-surface: #1e2126;
+  --color-text: #eef1f4;
+  --color-text-muted: #9aa2ab;
+  --color-accent: #ff6a00;
+  --color-accent-contrast: #14100a;
+  --color-border: #3a3f47;
+  --color-danger: #ff4d4f;
+  --color-success: #35c176;
 
   /* Font tokens: Inter for UI text, JetBrains Mono for numeric/data displays.
      Both are self-hosted from frontend/src/assets/fonts (OFL-licensed) via
