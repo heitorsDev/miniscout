@@ -38,7 +38,7 @@ test("admin downloads per-record CSV with calculated EstimatedScore", async ({ p
     const database = client.db();
     await Promise.all([
       database.collection("competitions").deleteMany({}),
-      database.collection("scout_records").deleteMany({})
+      database.collection("records").deleteMany({})
     ]);
     const competitionId = new ObjectId();
     await database.collection("competitions").insertOne({
@@ -47,7 +47,7 @@ test("admin downloads per-record CSV with calculated EstimatedScore", async ({ p
       scoring_profile_path: "/data/profiles/e2e-profile.json",
       created_at: new Date("2026-07-29T10:00:00.000Z")
     });
-    await database.collection("scout_records").insertOne({
+    await database.collection("records").insertOne({
       competition_id: competitionId,
       match_number: "Q7",
       team_number: "254",
