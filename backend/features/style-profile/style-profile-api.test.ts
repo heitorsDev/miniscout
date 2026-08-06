@@ -8,6 +8,7 @@ import { createFileStyleProfileRepository } from "./style-profile.repository";
 import { createStyleProfileController } from "./style-profile.controller";
 import { createStyleProfileRoutes } from "./style-profile.routes";
 import { defaultStyleProfile } from "./style-profile.defaults";
+import { createApp } from "../../app";
 
 function createTestApp(storagePath: string): express.Express {
   const app = express();
@@ -131,5 +132,30 @@ describe("StyleProfile API", () => {
     });
 
     expect(response.status).toBe(400);
+  });
+});
+
+describe("StyleProfile routes mounted on the main app entrypoint", () => {
+  const temporaryDirectories: string[] = [];
+
+  afterEach(async () => {
+    await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
+  });
+
+  it("is reachable without Mongo configured and round-trips through createApp", async () => {
+    const styleProfileStoragePath = await mkdtemp(path.join(tmpdir(), "miniscout-style-profile-app-"));
+    temporaryDirectories.push(styleProfileStoragePath);
+    const app = createApp({ styleProfileStoragePath });
+
+    const beforeSave = await request(app).get("/api/style-profile");
+    expect(beforeSave.status).toBe(200);
+    expect(beforeSave.body).toEqual(defaultStyleProfile);
+
+    const putResponse = await request(app).put("/api/admin/style-profile").send(customProfile);
+    expect(putResponse.status).toBe(200);
+
+    const afterSave = await request(app).get("/api/style-profile");
+    expect(afterSave.status).toBe(200);
+    expect(afterSave.body).toEqual(customProfile);
   });
 });
