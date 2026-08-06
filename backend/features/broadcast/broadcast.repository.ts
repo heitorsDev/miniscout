@@ -2,7 +2,7 @@ import type { Collection } from "mongodb";
 import { BaseBroadcaster } from "./broadcaster";
 import type { CompetitionId, MatchBroadcaster } from "./broadcaster";
 
-type CompetitionDocument = {
+type MatchBroadcastStateDocument = {
   _id: CompetitionId;
   current_match_number: number | null;
   updated_at: string;
@@ -11,11 +11,11 @@ type CompetitionDocument = {
 export class MongoBroadcaster extends BaseBroadcaster {
   protected readonly entries = new Map<CompetitionId, { value: number | null; updatedAt: string }>();
 
-  private constructor(private readonly collection: Collection<CompetitionDocument>) {
+  private constructor(private readonly collection: Collection<MatchBroadcastStateDocument>) {
     super();
   }
 
-  static async load(collection: Collection<CompetitionDocument>): Promise<MongoBroadcaster> {
+  static async load(collection: Collection<MatchBroadcastStateDocument>): Promise<MongoBroadcaster> {
     const broadcaster = new MongoBroadcaster(collection);
     const docs = await collection.find({}).toArray();
     for (const doc of docs) {
@@ -67,7 +67,7 @@ export class MongoBroadcaster extends BaseBroadcaster {
 }
 
 export async function loadMongoBroadcaster(
-  collection: Collection<CompetitionDocument>
+  collection: Collection<MatchBroadcastStateDocument>
 ): Promise<MatchBroadcaster> {
   return MongoBroadcaster.load(collection);
 }

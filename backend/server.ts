@@ -11,7 +11,7 @@ async function buildBroadcaster(database: Awaited<ReturnType<typeof startMongoDa
     _id: string;
     current_match_number: number | null;
     updated_at: string;
-  }>("competitions");
+  }>("match_broadcast_state");
   return await loadMongoBroadcaster(collection);
 }
 
