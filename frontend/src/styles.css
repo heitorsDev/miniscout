@@ -294,6 +294,21 @@ button:hover {
   cursor: pointer;
 }
 
+.logo-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.logo-preview img {
+  max-width: 120px;
+  max-height: 60px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
 .admin-nav {
   width: min(100%, 880px);
   margin: 0 auto var(--space-5);

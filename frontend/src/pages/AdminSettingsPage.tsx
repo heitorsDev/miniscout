@@ -95,6 +95,26 @@ export function AdminSettingsPage() {
     setForm({ ...form, colors: { ...form.colors, [key]: value } });
   };
 
+  const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !form) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUri = typeof reader.result === "string" ? reader.result : null;
+      setForm((current) => (current ? { ...current, logo: { ...current.logo, dataUri } } : current));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearLogo = () => {
+    if (!form) {
+      return;
+    }
+    setForm({ ...form, logo: { ...form.logo, dataUri: null } });
+  };
+
   const handleSave = async () => {
     if (!form) {
       return;
@@ -238,6 +258,29 @@ export function AdminSettingsPage() {
             ))}
           </select>
         </div>
+      </section>
+
+      <section aria-labelledby="logo-title">
+        <h2 id="logo-title">Logo &amp; team name</h2>
+        <div className="control-group">
+          <label htmlFor="team-name">Team name</label>
+          <input
+            id="team-name"
+            type="text"
+            value={form.logo.teamName}
+            onChange={(event) => setForm({ ...form, logo: { ...form.logo, teamName: event.target.value } })}
+          />
+        </div>
+        <div className="control-group">
+          <label htmlFor="logo-file">Logo image</label>
+          <input id="logo-file" type="file" accept="image/*" onChange={handleLogoFileChange} />
+        </div>
+        {form.logo.dataUri && (
+          <div className="logo-preview">
+            <img src={form.logo.dataUri} alt="Logo preview" data-testid="logo-preview-image" />
+            <button type="button" onClick={clearLogo}>Clear logo</button>
+          </div>
+        )}
       </section>
 
       <button type="button" onClick={handleSave} disabled={saving}>
