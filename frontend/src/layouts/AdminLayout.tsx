@@ -2,7 +2,8 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 
 const tabs: Array<{ to: string; end: boolean; label: string }> = [
   { to: "/admin", end: true, label: "Profile" },
-  { to: "/admin/competitions", end: false, label: "Competitions" }
+  { to: "/admin/competitions", end: false, label: "Competitions" },
+  { to: "/admin/settings", end: true, label: "Settings" }
 ];
 
 export function AdminLayout() {
