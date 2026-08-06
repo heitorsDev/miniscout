@@ -1,3 +1,43 @@
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/inter-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./assets/fonts/inter-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("./assets/fonts/inter-800.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/jetbrains-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./assets/fonts/jetbrains-mono-700.woff2") format("woff2");
+}
+
 :root {
   /* Color tokens */
   --color-bg: #eef2f5;
@@ -10,9 +50,11 @@
   --color-danger: #8c2222;
   --color-success: #155d39;
 
-  /* Font tokens */
-  --font-ui: Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-mono: Inter, ui-sans-serif, system-ui, sans-serif;
+  /* Font tokens: Inter for UI text, JetBrains Mono for numeric/data displays.
+     Both are self-hosted from frontend/src/assets/fonts (OFL-licensed) via
+     the @font-face rules above — no CDN/network font loading. */
+  --font-ui: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
   /* Radius tokens */
   --radius-sm: 7px;
@@ -47,6 +89,13 @@ body {
 button,
 input {
   font: inherit;
+}
+
+code,
+input[type="number"],
+input[inputmode="numeric"],
+input[inputmode="decimal"] {
+  font-family: var(--font-mono);
 }
 
 .admin-shell {
@@ -328,6 +377,7 @@ button:hover {
 .scouter-field.counter .stepper .value {
   min-width: 2ch;
   text-align: center;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1.4rem;
 }
@@ -391,6 +441,7 @@ button:hover {
 }
 
 .broadcast-value {
+  font-family: var(--font-mono);
   font-size: 1.8rem;
   font-weight: 800;
   color: var(--color-text);
