@@ -6,6 +6,7 @@ import type {
   ScoutGroupSummary,
   ScoringProfile,
   ScouterDraft,
+  StyleProfile,
   TeamRollup
 } from "./types";
 
@@ -136,6 +137,15 @@ export const api = {
     return request(`/api/competitions/${encodeURIComponent(token)}/records`, {
       method: "POST",
       body: JSON.stringify(payload)
+    });
+  },
+  getStyleProfile(): Promise<StyleProfile> {
+    return request("/api/style-profile");
+  },
+  updateStyleProfile(profile: StyleProfile): Promise<StyleProfile> {
+    return request("/api/admin/style-profile", {
+      method: "PUT",
+      body: JSON.stringify(profile)
     });
   }
 };

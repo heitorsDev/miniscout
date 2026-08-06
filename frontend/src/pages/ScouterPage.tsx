@@ -2,7 +2,28 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { FieldRenderer } from "../components/Field";
+import { useStyleProfile } from "../lib/StyleProfileContext";
 import { defaultValueForField, type DraftValue, type FieldValue, type ScoringField, type ScoringProfile, type ScouterDraft } from "../lib/types";
+
+/**
+ * Renders the configured logo/team name (StyleProfile.logo), if any.
+ * Mirrors the AdminLayout header (frontend/src/layouts/AdminLayout.tsx).
+ * ScouterPage had no header before this; it's added once here and reused
+ * across every render branch below.
+ */
+function ScouterHeader() {
+  const { profile } = useStyleProfile();
+  const logo = profile?.logo;
+  if (!logo || (!logo.dataUri && !logo.teamName)) {
+    return null;
+  }
+  return (
+    <header className="brand-logo scouter-header" data-testid="scouter-brand-logo">
+      {logo.dataUri && <img src={logo.dataUri} alt="" className="brand-logo-image" />}
+      {logo.teamName && <span className="brand-team-name">{logo.teamName}</span>}
+    </header>
+  );
+}
 
 type LoadState =
   | { status: "idle" }
@@ -363,6 +384,7 @@ export function ScouterPage() {
   if (!token) {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <section className="scouter-card" aria-labelledby="scouter-title">
           <p className="eyebrow">Miniscout Scouter</p>
           <h1 id="scouter-title">Scout Match</h1>
@@ -413,6 +435,7 @@ export function ScouterPage() {
   if (loadState.status === "idle" || loadState.status === "loading") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <p className="status">Loading competition…</p>
       </main>
     );
@@ -421,6 +444,7 @@ export function ScouterPage() {
   if (loadState.status === "not_found") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <p className="error">Competition not found. Check the QR code or URL.</p>
       </main>
     );
@@ -429,6 +453,7 @@ export function ScouterPage() {
   if (loadState.status === "error") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <p className="error">{loadState.message}</p>
       </main>
     );
@@ -437,6 +462,7 @@ export function ScouterPage() {
   if (nameState.status === "loading") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <p className="status">Checking scouter cookie…</p>
       </main>
     );
@@ -445,6 +471,7 @@ export function ScouterPage() {
   if (nameState.status === "needs_name") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <section className="name-card">
           <p className="eyebrow">Miniscout Scouter</p>
           <h1>{loadState.competitionName}</h1>
@@ -463,6 +490,7 @@ export function ScouterPage() {
   if (submitState.status === "submitted") {
     return (
       <main className="scouter-shell">
+      <ScouterHeader />
         <section className="confirmation-card">
           <p className="eyebrow">Miniscout Scouter</p>
           <h1>Record submitted</h1>
@@ -476,6 +504,7 @@ export function ScouterPage() {
 
   return (
     <main className="scouter-shell">
+      <ScouterHeader />
       <section className="scouter-card">
         <p className="eyebrow">Miniscout Scouter</p>
         <h1>{loadState.competitionName}</h1>

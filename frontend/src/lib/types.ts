@@ -101,6 +101,59 @@ export type TeamRollup = {
   matches: TeamMatchRollup[];
 };
 
+// StyleProfile types mirror backend/features/style-profile/style-profile.schema.ts
+// field-for-field so the frontend can consume GET /api/style-profile and PUT
+// /api/admin/style-profile without a translation layer.
+export type StyleProfileColorKey =
+  | "background"
+  | "surface"
+  | "text"
+  | "textMuted"
+  | "accent"
+  | "accentContrast"
+  | "border"
+  | "danger"
+  | "success";
+
+export type StyleProfileColors = Record<StyleProfileColorKey, string> & {
+  dark?: Partial<Record<StyleProfileColorKey, string>>;
+};
+
+export type StyleProfileFontUi = "inter";
+export type StyleProfileFontMono = "jetbrains-mono";
+
+export const STYLE_PROFILE_FONT_UI_OPTIONS: readonly StyleProfileFontUi[] = ["inter"];
+export const STYLE_PROFILE_FONT_MONO_OPTIONS: readonly StyleProfileFontMono[] = ["jetbrains-mono"];
+
+export type StyleProfileTypography = {
+  fontUi: StyleProfileFontUi;
+  fontMono: StyleProfileFontMono;
+};
+
+export type StyleProfileLogo = {
+  dataUri: string | null;
+  teamName: string;
+};
+
+export type StyleProfileShapeRadius = "sharp" | "rounded";
+export type StyleProfileShapeDensity = "compact" | "spacious";
+
+export const STYLE_PROFILE_RADIUS_OPTIONS: readonly StyleProfileShapeRadius[] = ["sharp", "rounded"];
+export const STYLE_PROFILE_DENSITY_OPTIONS: readonly StyleProfileShapeDensity[] = ["compact", "spacious"];
+
+export type StyleProfileShape = {
+  radius: StyleProfileShapeRadius;
+  density: StyleProfileShapeDensity;
+};
+
+export type StyleProfile = {
+  name: string;
+  colors: StyleProfileColors;
+  typography: StyleProfileTypography;
+  logo: StyleProfileLogo;
+  shape: StyleProfileShape;
+};
+
 export function defaultValueForField(field: ScoringField): FieldValue {
   switch (field.type) {
     case "counter":
