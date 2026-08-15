@@ -39,6 +39,8 @@ Design rationale and two non-obvious gotchas (the official `cloudflared` image h
 
 `POST /api/admin/profiles` validates and saves JSON under `PROFILE_STORAGE_PATH`, defaulting to `/data/profiles` in backend container. Profile names become `<name>.json` and accept letters, numbers, dots, hyphens, and underscores.
 
+On first boot, if `PROFILE_STORAGE_PATH` is empty, the backend seeds a bundled `reefscape-2025` ScoringProfile (`backend/features/profiles/reefscape.default.ts`) — real FRC 2025 REEFSCAPE point values (Table 6-2, game manual) covering every field type the app supports, so there's something to mint/scout/score right away. It never overwrites an existing profile.
+
 ```sh
 curl -X POST http://127.0.0.1:8083/api/admin/profiles \
   -H 'Content-Type: application/json' \
