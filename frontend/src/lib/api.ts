@@ -67,6 +67,9 @@ export const api = {
   }> {
     return request("/api/admin/competitions", { method: "POST", body: JSON.stringify(input) });
   },
+  getTunnelUrl(): Promise<{ url: string }> {
+    return request("/api/admin/tunnel-url");
+  },
   listAdminGroups(competitionId: string): Promise<{ groups: ScoutGroupSummary[] }> {
     return request(`/api/admin/competitions/${encodeURIComponent(competitionId)}/records`);
   },

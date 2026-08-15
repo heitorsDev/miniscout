@@ -10,6 +10,7 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PROFILE_STORAGE_PATH=/data/profiles
+ENV TUNNEL_URL_FILE=/data/tunnel/url
 COPY package.json package-lock.json ./
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
@@ -18,5 +19,5 @@ RUN apt-get update \
 COPY --from=build /app/dist/backend ./dist/backend
 RUN mkdir -p /data/profiles && chown -R node:node /data
 EXPOSE 3000
-ENTRYPOINT ["/bin/sh", "-c", "chown -R node:node \"$PROFILE_STORAGE_PATH\" 2>/dev/null; exec setpriv --reuid=node --regid=node --init-groups \"$@\"", "--"]
+ENTRYPOINT ["/bin/sh", "-c", "chown -R node:node \"$PROFILE_STORAGE_PATH\" 2>/dev/null; mkdir -p \"$(dirname \"$TUNNEL_URL_FILE\")\" && chown -R node:node \"$(dirname \"$TUNNEL_URL_FILE\")\" 2>/dev/null; exec setpriv --reuid=node --regid=node --init-groups \"$@\"", "--"]
 CMD ["node", "dist/backend/server.js"]

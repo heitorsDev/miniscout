@@ -1,0 +1,7 @@
+FROM cloudflare/cloudflared:latest AS cloudflared
+
+FROM alpine:3.20
+COPY --from=cloudflared /usr/local/bin/cloudflared /usr/local/bin/cloudflared
+COPY docker/cloudflared-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -11,7 +11,8 @@ vi.mock("../lib/api", () => ({
   api: {
     listAdminCompetitions: vi.fn(),
     listProfiles: vi.fn(),
-    mintCompetition: vi.fn()
+    mintCompetition: vi.fn(),
+    getTunnelUrl: vi.fn()
   },
   ApiError: class ApiError extends Error {
     constructor(message: string, readonly status: number) {
@@ -33,6 +34,7 @@ describe("AdminCompetitionsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.listAdminCompetitions).mockResolvedValue({ competitions: [] });
+    vi.mocked(api.getTunnelUrl).mockRejectedValue(new Error("not found"));
   });
 
   afterEach(() => cleanup());
@@ -92,5 +94,25 @@ describe("AdminCompetitionsPage", () => {
         lan_base_url: "http://192.168.1.10:8082"
       });
     });
+  });
+
+  it("prefills the LAN scouter URL from api.getTunnelUrl", async () => {
+    vi.mocked(api.listProfiles).mockResolvedValue({ profiles: [] });
+    vi.mocked(api.getTunnelUrl).mockResolvedValue({ url: "https://random-words.trycloudflare.com" });
+    setup();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("LAN scouter URL")).toHaveValue("https://random-words.trycloudflare.com");
+    });
+  });
+
+  it("shows a warning and leaves the field empty when no tunnel is available", async () => {
+    vi.mocked(api.listProfiles).mockResolvedValue({ profiles: [] });
+    setup();
+
+    await waitFor(() => {
+      expect(screen.getByText(/No public tunnel detected/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("LAN scouter URL")).toHaveValue("");
   });
 });

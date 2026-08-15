@@ -17,8 +17,10 @@ services:
       MONGO_URL: mongodb://mongo:27017/miniscout
       PORT: 3000
       PROFILE_STORAGE_PATH: ${PROFILE_STORAGE_PATH:-/data/profiles}
+      TUNNEL_URL_FILE: ${TUNNEL_URL_FILE:-/data/tunnel/url}
     volumes:
       - profile_data:${PROFILE_STORAGE_PATH:-/data/profiles}
+      - tunnel_data:/data/tunnel
     depends_on:
       mongo:
         condition: service_healthy
@@ -57,6 +59,26 @@ services:
     volumes:
       - ./Caddyfile.scouter:/etc/caddy/Caddyfile:ro
 
+  # Opt-in: `docker compose --profile tunnel up` exposes scouter-proxy over a
+  # Cloudflare Quick Tunnel (no account/domain needed). The discovered
+  # *.trycloudflare.com URL is written to a shared volume that the backend
+  # reads at GET /api/admin/tunnel-url. Never routes to reverse-proxy (admin
+  # is unauthenticated and must stay LAN-only).
+  cloudflared:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudflared
+    profiles: ["tunnel"]
+    depends_on:
+      scouter-proxy:
+        condition: service_started
+    environment:
+      TUNNEL_URL_FILE: ${TUNNEL_URL_FILE:-/data/tunnel/url}
+      TUNNEL_TARGET_URL: http://scouter-proxy:80
+    volumes:
+      - tunnel_data:/data/tunnel
+
 volumes:
   mongo_data:
   profile_data:
+  tunnel_data:
