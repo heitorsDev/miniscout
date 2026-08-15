@@ -33,6 +33,8 @@ docker compose --profile tunnel up --build
 
 This starts a `cloudflared` service that opens a Cloudflare Quick Tunnel to `scouter-proxy` only — the unauthenticated admin UI never goes through it. The tunnel's `*.trycloudflare.com` URL changes every restart; the backend reads the discovered URL from `GET /api/admin/tunnel-url`, and the "Mint competition" form prefills the LAN scouter URL field with it (still editable). Without the `tunnel` profile, that endpoint returns 404 and the field stays a manual entry, as before.
 
+Design rationale and two non-obvious gotchas (the official `cloudflared` image has no shell; Vite's preview server needs `allowedHosts` opened up for the tunnel hostname) are in [docs/adr/0002-cloudflare-quick-tunnel-mobile-access.md](docs/adr/0002-cloudflare-quick-tunnel-mobile-access.md).
+
 ## Profile API (T01)
 
 `POST /api/admin/profiles` validates and saves JSON under `PROFILE_STORAGE_PATH`, defaulting to `/data/profiles` in backend container. Profile names become `<name>.json` and accept letters, numbers, dots, hyphens, and underscores.

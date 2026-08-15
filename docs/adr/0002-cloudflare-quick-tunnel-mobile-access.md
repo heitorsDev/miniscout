@@ -1,0 +1,9 @@
+# Cloudflare Quick Tunnel for mobile scouter access
+
+We expose the mobile scouter UI off-LAN via an opt-in `cloudflared` service (`docker compose --profile tunnel up`) tunneling only `scouter-proxy`, never `reverse-proxy` — the admin UI has no authentication anywhere in the backend, so it must never leave the LAN. We chose a Cloudflare Quick Tunnel (`cloudflared tunnel --url ...`, no account or named domain) over ngrok or a named tunnel: zero setup cost, acceptable for a per-event, ephemeral use case. The trade-off is that the `*.trycloudflare.com` hostname changes on every restart.
+
+To make that survivable, `cloudflared`'s wrapper script (`docker/cloudflared-entrypoint.sh`) greps the discovered URL out of its own log stream and writes it to a Docker volume shared with `backend`; a new `GET /api/admin/tunnel-url` endpoint serves it (404 when the tunnel isn't running), and the admin "Mint competition" form prefills the (still editable) LAN scouter URL field from it. We rejected mounting the Docker socket into the backend to query the tunnel URL directly — a shared volume is far less coupled and doesn't grant the backend container control over the host's Docker daemon.
+
+Two things had to be discovered by running the stack, not by reading docs: `cloudflare/cloudflared:latest` is a distroless image with no shell, so the wrapper script needed a thin Alpine layer (`Dockerfile.cloudflared`) copying the `cloudflared` binary out, rather than a shell entrypoint bind-mounted straight into the official image; and Vite's preview server 403s any `Host` header it doesn't recognize, so `vite.config.ts` now sets `preview.allowedHosts: true` (safe here — `frontend` is only ever reached through the two Caddy proxies inside the Docker network, never directly from the internet).
+
+Status: accepted.
