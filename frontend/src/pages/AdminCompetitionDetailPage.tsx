@@ -164,9 +164,9 @@ export function AdminCompetitionDetailPage() {
           {" · "}
           <Link to={`/admin/competitions/${state.competition._id}/teams`} data-testid="teams-link">Teams rollup</Link>
         </p>
-        <QRCodeSVG value={`${window.location.origin}/scout?c=${state.competition.qr_token}`} size={224} data-testid="competition-qr" />
+        <QRCodeSVG value={state.competition.qr_url} size={224} data-testid="competition-qr" />
         <p className="muted">
-          Encodes a scouter URL relative to this origin with <code>?c={state.competition.qr_token}</code>.
+          Encodes <code>{state.competition.qr_url}</code>.
         </p>
       </div>
 

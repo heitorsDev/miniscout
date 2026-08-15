@@ -72,6 +72,7 @@ describe("AdminCompetitionsPage", () => {
         name: "Spring 2026",
         scoring_profile_name: "beta",
         qr_token: "abc",
+        qr_url: "http://example.test/scout?c=abc",
         created_at: new Date().toISOString()
       },
       qr_url: "http://example.test/scout?c=abc"

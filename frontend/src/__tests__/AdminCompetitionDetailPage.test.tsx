@@ -7,6 +7,12 @@ import { api } from "../lib/api";
 import { AdminCompetitionDetailPage } from "../pages/AdminCompetitionDetailPage";
 import type { Competition, ScoutGroup, ScoutGroupSummary } from "../lib/types";
 
+vi.mock("qrcode.react", () => ({
+  QRCodeSVG: ({ value, "data-testid": testId }: { value: string; "data-testid"?: string }) => (
+    <svg data-testid={testId} data-qr-value={value} />
+  )
+}));
+
 vi.mock("../lib/api", () => ({
   api: {
     listAdminCompetitions: vi.fn(),
@@ -29,6 +35,7 @@ const competition: Competition = {
   name: "Spring 2026",
   scoring_profile_name: "test-profile",
   qr_token: "abc",
+  qr_url: "https://random-words.trycloudflare.com/scout?c=abc",
   created_at: new Date().toISOString()
 };
 
@@ -91,5 +98,19 @@ describe("AdminCompetitionDetailPage", () => {
     expect(input.getAttribute("list")).toBe("official-match-options");
     const datalist = document.getElementById("official-match-options") as HTMLDataListElement;
     expect(datalist.options.length).toBe(0);
+  });
+
+  it("encodes the competition's own qr_url in the QR code, not the admin page's origin", async () => {
+    vi.clearAllMocks();
+    vi.mocked(api.listAdminCompetitions).mockResolvedValue({ competitions: [competition] });
+    vi.mocked(api.listAdminGroups).mockResolvedValue({ groups: [] });
+    vi.mocked(api.listOfficialScores).mockResolvedValue({ official_scores: [] });
+
+    setup();
+
+    await screen.findByText("Spring 2026");
+
+    const qr = screen.getByTestId("competition-qr");
+    expect(qr).toHaveAttribute("data-qr-value", competition.qr_url);
   });
 });

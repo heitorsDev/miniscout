@@ -56,6 +56,7 @@ export type Competition = {
   name: string;
   scoring_profile_name: string;
   qr_token: string;
+  qr_url: string;
   created_at: string;
   current_match_number?: number;
 };

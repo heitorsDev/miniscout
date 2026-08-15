@@ -9,6 +9,7 @@ export type CompetitionView = {
   name: string;
   scoring_profile_name: string;
   qr_token: string;
+  qr_url: string;
   created_at: Date;
   current_match_number?: number;
 };

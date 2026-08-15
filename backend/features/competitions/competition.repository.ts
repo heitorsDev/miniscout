@@ -1,12 +1,20 @@
 import { newCompetitionId, newOpaqueToken, type CompetitionDocument, type MongoDatabase } from "../../shared/db";
 import type { CompetitionView, MintCompetitionInput } from "./competition.types";
 
+function buildQrUrl(lanBaseUrl: string, qrToken: string): string {
+  const url = new URL(lanBaseUrl);
+  url.pathname = "/scout";
+  url.search = `?c=${qrToken}`;
+  return url.toString();
+}
+
 function toCompetitionView(doc: CompetitionDocument): CompetitionView {
   return {
     _id: doc._id,
     name: doc.name,
     scoring_profile_name: doc.scoring_profile_name,
     qr_token: doc.qr_token,
+    qr_url: buildQrUrl(doc.lan_base_url, doc.qr_token),
     created_at: doc.created_at,
     ...(doc.current_match_number !== undefined ? { current_match_number: doc.current_match_number } : {})
   };
@@ -32,7 +40,7 @@ export function createMongoCompetitionRepository(database: MongoDatabase): Compe
     },
     async list() {
       const docs = await database.collections.competitions
-        .find({}, { projection: { lan_base_url: 0 } })
+        .find({})
         .sort({ created_at: -1 })
         .toArray();
       return docs.map(toCompetitionView);
@@ -53,10 +61,7 @@ export function mintCompetitionFromInput(input: MintCompetitionInput): {
     lan_base_url: input.lan_base_url,
     created_at: now
   };
-  const url = new URL(input.lan_base_url);
-  url.pathname = "/scout";
-  url.search = `?c=${doc.qr_token}`;
-  return { document: doc, qr_url: url.toString() };
+  return { document: doc, qr_url: buildQrUrl(input.lan_base_url, doc.qr_token) };
 }
 
 export function viewCompetition(doc: CompetitionDocument): CompetitionView {

@@ -1,5 +1,5 @@
 import type { CompetitionRepository } from "./competition.repository";
-import { mintCompetitionFromInput } from "./competition.repository";
+import { mintCompetitionFromInput, viewCompetition } from "./competition.repository";
 import type { CompetitionDocument } from "../../shared/db";
 import { ProfileNotFoundError } from "../profiles/profile.repository";
 import type { ProfileRepository } from "../profiles/profile.repository";
@@ -44,7 +44,7 @@ export function createCompetitionService(
       }
       const { document, qr_url } = mintCompetitionFromInput(input);
       await repository.insert(document);
-      return { competition: { ...document }, qr_url };
+      return { competition: viewCompetition(document), qr_url };
     },
     async findByQrToken(qrToken) {
       return repository.findByQrToken(qrToken);
