@@ -65,7 +65,9 @@ services:
   # reads at GET /api/admin/tunnel-url. Never routes to reverse-proxy (admin
   # is unauthenticated and must stay LAN-only).
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudflared
     profiles: ["tunnel"]
     depends_on:
       scouter-proxy:
@@ -73,9 +75,7 @@ services:
     environment:
       TUNNEL_URL_FILE: ${TUNNEL_URL_FILE:-/data/tunnel/url}
       TUNNEL_TARGET_URL: http://scouter-proxy:80
-    entrypoint: ["/bin/sh", "/scripts/cloudflared-entrypoint.sh"]
     volumes:
-      - ./docker/cloudflared-entrypoint.sh:/scripts/cloudflared-entrypoint.sh:ro
       - tunnel_data:/data/tunnel
 
 volumes:
