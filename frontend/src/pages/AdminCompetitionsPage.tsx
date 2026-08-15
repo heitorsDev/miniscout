@@ -21,10 +21,17 @@ type ProfilesState =
   | { status: "ready"; profiles: string[] }
   | { status: "error"; message: string };
 
+type TunnelUrlState =
+  | { status: "loading" }
+  | { status: "ready"; url: string }
+  | { status: "unavailable" };
+
 export function AdminCompetitionsPage() {
   const [loadState, setLoadState] = useState<LoadState>({ status: "idle" });
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
   const [profilesState, setProfilesState] = useState<ProfilesState>({ status: "loading" });
+  const [tunnelUrlState, setTunnelUrlState] = useState<TunnelUrlState>({ status: "loading" });
+  const [lanBaseUrl, setLanBaseUrl] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
@@ -63,6 +70,23 @@ export function AdminCompetitionsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    api.getTunnelUrl()
+      .then((response) => {
+        if (cancelled) return;
+        setTunnelUrlState({ status: "ready", url: response.url });
+        setLanBaseUrl((current) => (current ? current : response.url));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTunnelUrlState({ status: "unavailable" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const profileNames = profilesState.status === "ready" ? profilesState.profiles : [];
   const hasProfiles = profileNames.length > 0;
 
@@ -71,7 +95,7 @@ export function AdminCompetitionsPage() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
     const scoring_profile_name = String(formData.get("scoring_profile_name") ?? "").trim();
-    const lan_base_url = String(formData.get("lan_base_url") ?? "").trim();
+    const lan_base_url = lanBaseUrl.trim();
     if (!name || !scoring_profile_name || !lan_base_url) {
       return;
     }
@@ -81,6 +105,7 @@ export function AdminCompetitionsPage() {
         setCreateState({ status: "submitted", competition: response.competition, qr_url: response.qr_url });
         reload();
         (event.target as HTMLFormElement).reset();
+        setLanBaseUrl(tunnelUrlState.status === "ready" ? tunnelUrlState.url : "");
       })
       .catch((error: unknown) => {
         const message = error instanceof ApiError ? error.message : "Could not mint competition";
@@ -126,8 +151,15 @@ export function AdminCompetitionsPage() {
             type="url"
             required
             placeholder="http://192.168.1.10:8082"
+            value={lanBaseUrl}
+            onChange={(event) => setLanBaseUrl(event.target.value)}
           />
         </div>
+        {tunnelUrlState.status === "unavailable" && (
+          <p className="muted">
+            No public tunnel detected — enter the LAN URL manually, or start the stack with the tunnel profile enabled.
+          </p>
+        )}
         {profilesState.status === "ready" && !hasProfiles && (
           <p className="muted">
             No ScoringProfiles uploaded yet — upload one on the <Link to="/admin">Profile page</Link> first.
