@@ -47,10 +47,14 @@ import { createMongoRecordExportDataLoader } from "./features/csv-export/csv.rep
 import { createCsvExportController } from "./features/csv-export/csv.controller";
 import { createCsvExportRoutes } from "./features/csv-export/csv.routes";
 import type { RecordExportDataLoader } from "./features/csv-export/csv.types";
+import { createFileTunnelRepository } from "./features/tunnel/tunnel.repository";
+import { createTunnelController } from "./features/tunnel/tunnel.controller";
+import { createTunnelRoutes } from "./features/tunnel/tunnel.routes";
 
 export type AppOptions = {
   profileStoragePath?: string;
   styleProfileStoragePath?: string;
+  tunnelUrlFilePath?: string;
   mongoDatabase?: MongoDatabase;
   mongoUrl?: string;
   loadRecordExportData?: RecordExportDataLoader;
@@ -80,6 +84,7 @@ function requireMongo(req: express.Request, res: express.Response, next: express
 export function createApp(options: AppOptions = {}): Express {
   const profileStoragePath = options.profileStoragePath ?? process.env.PROFILE_STORAGE_PATH ?? "/data/profiles";
   const styleProfileStoragePath = options.styleProfileStoragePath ?? process.env.STYLE_PROFILE_STORAGE_PATH ?? "/data/style-profile";
+  const tunnelUrlFilePath = options.tunnelUrlFilePath ?? process.env.TUNNEL_URL_FILE ?? "/data/tunnel/url";
   const loadRecordExportData = options.loadRecordExportData ?? (
     options.mongoDatabase
       ? createMongoRecordExportDataLoader({
@@ -106,6 +111,10 @@ export function createApp(options: AppOptions = {}): Express {
   const styleProfileRepository = createFileStyleProfileRepository(styleProfileStoragePath);
   const styleProfileController = createStyleProfileController(styleProfileRepository);
   app.use("/api", createStyleProfileRoutes(styleProfileController));
+
+  const tunnelRepository = createFileTunnelRepository(tunnelUrlFilePath);
+  const tunnelController = createTunnelController(tunnelRepository);
+  app.use("/api", createTunnelRoutes(tunnelController));
 
   const broadcastController = createBroadcastController(matchBroadcaster);
   app.use("/api", createBroadcastRoutes(broadcastController, matchBroadcaster));
